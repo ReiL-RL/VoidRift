@@ -56,11 +56,10 @@ public final class EventDisplay {
     private void sendActionBar(Player player, ActiveEvent event) {
         long remaining = event.getRemainingSeconds();
         int score = event.getScore(player.getUniqueId());
-        String msg = ChatColor.GOLD + "\u2726 " + ChatColor.YELLOW + event.getDefinition().getDisplayName()
+        String msg = ChatColor.GOLD + "✦ " + ChatColor.YELLOW + event.getDefinition().getDisplayName()
                 + ChatColor.GRAY + " | " + ChatColor.WHITE + formatTime(remaining)
-                + ChatColor.GRAY + " | " + ChatColor.GREEN + "\u2605 " + score;
+                + ChatColor.GRAY + " | " + ChatColor.GREEN + "★ " + score;
 
-        // Add first objective progress
         List<Objective> objectives = event.getDefinition().getObjectives();
         if (!objectives.isEmpty()) {
             PlayerProgress progress = getProgress(event, player.getUniqueId());
@@ -81,34 +80,34 @@ public final class EventDisplay {
             player.setScoreboard(board);
         }
 
-        // Remove old objective
         org.bukkit.scoreboard.Objective obj = board.getObjective("voidrift");
         if (obj != null) obj.unregister();
 
         obj = board.registerNewObjective("voidrift", "dummy",
-                ChatColor.GOLD + "" + ChatColor.BOLD + "\u2726 " + event.getDefinition().getDisplayName());
+                ChatColor.GOLD + "" + ChatColor.BOLD + "✦ " + event.getDefinition().getDisplayName());
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         int line = 15;
 
-        // Time
-        obj.getScore(ChatColor.YELLOW + "\u23F1 " + formatTime(event.getRemainingSeconds())).setScore(line--);
+        obj.getScore(ChatColor.YELLOW + "⏱ " + formatTime(event.getRemainingSeconds())).setScore(line--);
         obj.getScore(ChatColor.GRAY + "---").setScore(line--);
 
         // Score
-        obj.getScore(ChatColor.GREEN + "\u2605 \u041e\u0447\u043a\u0438: " + event.getScore(player.getUniqueId())).setScore(line--);
+        String scoreLabel = plugin.getLang().msg("messages.display.score-label");
+        obj.getScore(ChatColor.GREEN + scoreLabel + event.getScore(player.getUniqueId())).setScore(line--);
 
         // Objectives
         List<Objective> objectives = event.getDefinition().getObjectives();
         PlayerProgress progress = getProgress(event, player.getUniqueId());
         if (!objectives.isEmpty() && progress != null) {
             obj.getScore(ChatColor.GRAY + "----").setScore(line--);
-            obj.getScore(ChatColor.AQUA + "\u0426\u0435\u043b\u0438:").setScore(line--);
+            String objectivesLabel = plugin.getLang().msg("messages.display.objectives-label");
+            obj.getScore(ChatColor.AQUA + objectivesLabel).setScore(line--);
             for (int i = 0; i < Math.min(objectives.size(), 5); i++) {
                 Objective o = objectives.get(i);
                 int cur = progress.getProgress(i);
                 boolean done = cur >= o.getAmount();
-                String status = done ? (ChatColor.GREEN + "\u2714 ") : (ChatColor.WHITE + "\u25CB ");
+                String status = done ? (ChatColor.GREEN + "✔ ") : (ChatColor.WHITE + "○ ");
                 String text = status + objectiveName(o) + ChatColor.GRAY + " " + cur + "/" + o.getAmount();
                 obj.getScore(text).setScore(line--);
             }
@@ -116,14 +115,15 @@ public final class EventDisplay {
 
         // Players
         obj.getScore(ChatColor.GRAY + "-----").setScore(line--);
-        obj.getScore(ChatColor.LIGHT_PURPLE + "\u0418\u0433\u0440\u043e\u043a\u043e\u0432: " + event.getParticipants().size()).setScore(line--);
+        String playersLabel = plugin.getLang().msg("messages.display.players-label");
+        obj.getScore(ChatColor.LIGHT_PURPLE + playersLabel + event.getParticipants().size()).setScore(line--);
 
         // Modifiers
         if (event.getModifiers() != null && !event.getModifiers().isEmpty()) {
             obj.getScore(ChatColor.GRAY + "------").setScore(line--);
             String modDisplay = plugin.getModifierManager() != null ? plugin.getModifierManager().getModifierDisplay(event) : "";
             if (modDisplay.length() > 30) modDisplay = modDisplay.substring(0, 30) + "...";
-            obj.getScore(ChatColor.DARK_PURPLE + "\u2726 " + modDisplay).setScore(line--);
+            obj.getScore(ChatColor.DARK_PURPLE + "✦ " + modDisplay).setScore(line--);
         }
     }
 
@@ -146,16 +146,16 @@ public final class EventDisplay {
 
     private String objectiveName(Objective obj) {
         switch (obj.getType()) {
-            case KILL_MOBS: return "\u0423\u0431\u0438\u0442\u044c \u043c\u043e\u0431\u043e\u0432";
-            case KILL_BOSS: return "\u0423\u0431\u0438\u0442\u044c \u0431\u043e\u0441\u0441\u0430";
-            case KILL_ELITE: return "\u0423\u0431\u0438\u0442\u044c \u044d\u043b\u0438\u0442\u0443";
-            case SURVIVE_TIME: return "\u0412\u044b\u0436\u0438\u0442\u044c";
-            case REACH_WAVE: return "\u0414\u043e\u0439\u0442\u0438 \u0434\u043e \u0432\u043e\u043b\u043d\u044b";
-            case COLLECT_ITEM: return "\u0421\u043e\u0431\u0440\u0430\u0442\u044c";
-            case MINE_BLOCK: return "\u0421\u043b\u043e\u043c\u0430\u0442\u044c";
-            case SCORE_POINTS: return "\u041d\u0430\u0431\u0440\u0430\u0442\u044c \u043e\u0447\u043a\u0438";
-            case NO_DEATH: return "\u041d\u0435 \u0443\u043c\u0435\u0440\u0435\u0442\u044c";
-            case DEAL_DAMAGE: return "\u041d\u0430\u043d\u0435\u0441\u0442\u0438 \u0443\u0440\u043e\u043d";
+            case KILL_MOBS: return plugin.getLang().msg("messages.objective-names.kill-mobs");
+            case KILL_BOSS: return plugin.getLang().msg("messages.objective-names.kill-boss");
+            case KILL_ELITE: return plugin.getLang().msg("messages.objective-names.kill-elite");
+            case SURVIVE_TIME: return plugin.getLang().msg("messages.objective-names.survive-time");
+            case REACH_WAVE: return plugin.getLang().msg("messages.objective-names.reach-wave");
+            case COLLECT_ITEM: return plugin.getLang().msg("messages.objective-names.collect-item");
+            case MINE_BLOCK: return plugin.getLang().msg("messages.objective-names.mine-block");
+            case SCORE_POINTS: return plugin.getLang().msg("messages.objective-names.score-points");
+            case NO_DEATH: return plugin.getLang().msg("messages.objective-names.no-death");
+            case DEAL_DAMAGE: return plugin.getLang().msg("messages.objective-names.deal-damage");
             default: return obj.getType().name();
         }
     }

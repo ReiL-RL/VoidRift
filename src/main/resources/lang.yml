@@ -1,39 +1,279 @@
-# VoidRift - Сообщения (lang.yml)
-# Поддерживает цветовые коды &
+# VoidRift - Все сообщения плагина
+# Поддерживает: цветовые коды (&a, &l), hex (&#FF5555), PlaceholderAPI
 
 messages:
-  # Порталы
-  portal-enter: "&d✦ Ты вошёл в событие!"
-  portal-exit: "&e✦ Ты покинул событие."
-  portal-blocked-cmd: "&c✘ Эта команда заблокирована во время события. Используй портал выхода."
-
-  # Ивенты
-  event-started: "&6✦ {event} &6началось! /event join {id}"
-  event-ending: "&6✦ {event} &6завершается через 10 секунд..."
-  event-ended: "&6✦ {event} &6завершено!"
-  event-ended-portals: "&6✦ {event} &6завершено! Порталы закрыты."
-
-  # Цели
-  objective-complete: "&a&l✦ Цель выполнена!"
-  objective-subtitle: "&e{objective}"
-
-  # Награды
-  reward-title: "&6✦ &aНаграда за событие: &e{event}"
-  reward-money: "&6  +${amount}"
-  reward-score: "&7  Очки: {score}"
-  reward-cooldown: "&cНаграда за это событие будет доступна через {time}."
-
-  # Лидерборд
-  leaderboard-header: "&6✦ Топ-10: &e{event}"
-  leaderboard-entry: "&e#{rank} &f{player} &7- &a{score}"
-  leaderboard-empty: "&7Пока нет записей."
-
-  # Визарды
-  wizard-cancelled: "&cНастройка отменена."
-  zone-saved: "&a&l✦ Зона '{zone}' сохранена!"
-
-  # Общее
+  # === Общее ===
   no-permission: "&cНет прав."
   not-found: "&cНе найдено: {id}"
   error: "&cОшибка."
   reloaded: "&aПерезагружено."
+  players-only: "&cТолько игроки."
+
+  # === Порталы ===
+  portal:
+    enter: "&d✦ Ты вошёл в событие!"
+    exit: "&e✦ Ты покинул событие."
+    blocked-cmd: "&c✘ Эта команда заблокирована во время события. Используй портал выхода."
+    event-ended-return: "&e✦ Событие завершено. Ты возвращён."
+
+  # === Ивенты ===
+  event:
+    started: "&6✦ {event} &6началось! /event join {id}"
+    ending: "&6✦ {event} &6завершается через 10 секунд..."
+    ended: "&6✦ {event} &6завершено!"
+    ended-portals: "&6✦ {event} &6завершено! Порталы закрыты."
+    preview-title: "&d✦ Событие начинается"
+    preview-subtitle: "&eЧерез {seconds} сек..."
+
+  # === Цели ===
+  objective:
+    complete: "&a&l✦ Цель выполнена!"
+    subtitle: "&e{objective}"
+
+  # === Награды ===
+  reward:
+    title: "&6✦ &aНаграда за событие: &e{event}"
+    money: "&6  +${amount}"
+    score: "&7  Очки: {score}"
+    cooldown: "&cНаграда за это событие будет доступна через {time}."
+
+  # === Лут-сундуки ===
+  loot-chest:
+    boss-appeared: "&6✦ Сундук босса появился!"
+    boss-loot-received: "&6✦ Ты получил лут босса!"
+    already-looted: "&cТы уже забрал лут из этого сундука."
+    chest-title-boss: "&6✦ Сундук босса"
+    chest-title-random: "&e✦ Сундук наград"
+
+  # === Лидерборд ===
+  leaderboard:
+    header: "&6✦ Топ-10: &e{event}"
+    entry: "&e#{rank} &f{player} &7- &a{score}"
+    empty: "&7Пока нет записей."
+
+  # === Админ команды ===
+  admin:
+    no-permission: "&cНет прав."
+    usage-start: "&c/riftadmin start <event>"
+    usage-startnow: "&c/riftadmin startnow <event>"
+    usage-stop: "&c/riftadmin stop <event>"
+    usage-stopnow: "&c/riftadmin stopnow <event>"
+    usage-setup: "&c/riftadmin setup <event>"
+    usage-setupzone: "&c/riftadmin setupzone <zone-id>"
+    usage-createevent: "&c/riftadmin createevent <id>"
+    start-countdown: "&aЗапуск с отсчётом..."
+    started: "&aЗапущено."
+    stop-countdown: "&aОстановка через 10с..."
+    stopped: "&aОстановлено."
+    not-found: "&cНе найдено."
+    not-found-id: "&cНе найдено: {id}"
+    error: "&cОшибка."
+    reloaded: "&aПерезагружено."
+    players-only: "&cТолько игроки."
+    info-events-header: "&6События:"
+    info-portals-header: "&7Порталы:"
+    info-loc-not-set: "не уст."
+    info-header: "&6=== {name} ==="
+    info-id-type: "&7ID: {id}, Тип: {type}"
+    info-duration-interval: "&7Длит.: {duration}с, Интервал: {interval}с"
+    info-active: "&aАктивен! Осталось: {remaining}с, игроков: {players}"
+    info-no: "нет"
+
+  # === Админ порталы ===
+  admin-portal:
+    entry-set: "&a✔ Вход в евент установлен. Теперь установи назначение: /riftadmin portal dest {event}"
+    exit-set: "&a✔ Выход из евента установлен."
+    dynamic-created: "&a✔ Динамический вход создан. Назначение = твоя позиция."
+    dynamic-hint: "&eДобавь точки появления: /riftadmin portal addpos {event}"
+    addpos-done: "&a✔ Точка появления добавлена ({x}, {y}, {z})"
+    dest-set: "&a✔ Назначение входа = твоя позиция (евент-локация)."
+    return-set: "&a✔ Точка возврата установлена."
+    next-set: "&a✔ Промежуточный портал {id} установлен."
+    next-hint: "&eУстанови назначение: /riftadmin portal nextdest {event} {id}"
+    nextdest-set: "&a✔ Назначение {id} установлено."
+    usage-next: "&c/riftadmin portal next <event> <id>"
+    usage-nextdest: "&c/riftadmin portal nextdest <event> <id>"
+    help-header: "&6Настройка порталов:"
+    help-entry: "&e  /riftadmin portal entry <event>&7 — статичный вход"
+    help-dynamic: "&e  /riftadmin portal dynamic <event>&7 — динамический вход"
+    help-addpos: "&e  /riftadmin portal addpos <event>&7 — добавить точку появления"
+    help-dest: "&e  /riftadmin portal dest <event>&7 — куда телепортирует вход"
+    help-exit: "&e  /riftadmin portal exit <event>&7 — портал выхода"
+    help-return: "&e  /riftadmin portal return <event>&7 — точка возврата"
+    help-next: "&e  /riftadmin portal next <event> <id>&7 — промежуточный"
+    help-nextdest: "&e  /riftadmin portal nextdest <event> <id>&7 — назначение пром."
+
+  # === Админ помощь ===
+  admin-help:
+    header: "&6VoidRift Admin:"
+    start: "&e  /riftadmin start <event>&7 — с отсчётом"
+    startnow: "&e  /riftadmin startnow <event>&7 — мгновенно"
+    stop: "&e  /riftadmin stop <event>&7 — с отсчётом"
+    stopnow: "&e  /riftadmin stopnow <event>&7 — мгновенно"
+    portal: "&e  /riftadmin portal ...&7 — настройка порталов"
+    setup: "&e  /riftadmin setup <event>&7 — визард порталов"
+    setupzone: "&e  /riftadmin setupzone <zone>&7 — визард зоны"
+    createevent: "&e  /riftadmin createevent <id>&7 — создать ивент"
+    info: "&e  /riftadmin info [event]&7 — инфо"
+    reload: "&e  /riftadmin reload&7 — перезагрузить"
+
+  # === Визард порталов ===
+  wizard:
+    title: "&6&l✦ Мастер настройки порталов: &e{event}"
+    step1-choose: "&7Шаг 1: Выбери тип входа"
+    step1-static: "&a  ПКМ зелёный шар = Статический"
+    step1-dynamic: "&b  ПКМ голубой шар = Динамический"
+    step1-cancel: "&c  ПКМ красный = Отмена"
+    step2-entry: "&eШаг 2: Встань где будет портал входа и нажми ПКМ на зелёный блок."
+    step2-dynamic: "&eШаг 2: Встань на евент-локации (куда ТП) и нажми ПКМ."
+    entry-set: "&a✔ Вход установлен!"
+    step3-dest: "&eШаг 3: Встань на евент-локации и нажми ПКМ."
+    dest-set: "&a✔ Назначение установлено!"
+    step35-dynamic: "&eШаг 3.5: Добавь точки появления. ПКМ зелёный = добавить, жёлтый = дальше."
+    dynamic-point-added: "&a✔ Точка #{count} добавлена. Ещё или жёлтый = дальше."
+    step4-exit: "&eШаг 4: Встань где выход из евента и нажми ПКМ."
+    exit-set: "&a✔ Выход установлен!"
+    step5-intermediate: "&eШаг 5: Промежуточные порталы (двусторонние)"
+    step5-hint-a: "&7  Зелёный = установить точку A"
+    step5-hint-b: "&7  Голубой = установить точку B (создаст пару)"
+    step5-hint-done: "&7  Жёлтый = Готово (завершить)"
+    step5-ids: "&7  ID: {event}_loc1, _loc2..."
+    point-a-set: "&a✔ Точка A запомнена. Теперь встань на точку B и нажми голубой."
+    point-a-first: "&cСначала установи точку A (зелёный)!"
+    pair-created: "&a✔ Пара #{idx} создана! ({idA} ↔ {idB})"
+    pair-hint: "&7  Добавь ещё или нажми жёлтый = Готово."
+    skip-type: "&e▶ Выбор типа пропущен. Установи выход или пропусти дальше."
+    skip-entry: "&e▶ Вход пропущен. Установи назначение."
+    skip-dest: "&e▶ Назначение пропущено. Установи выход."
+    skip-dynamic: "&e▶ Динамические точки пропущены. Установи выход."
+    skip-exit: "&e▶ Выход пропущен. Промежуточные порталы."
+    back-nowhere: "&cНекуда возвращаться."
+    back-to: "&e◀ Возврат на предыдущий шаг: {step}"
+    finished: "&a&l✦ Настройка завершена!"
+    finished-intermediate: "&7Промежуточных порталов: {count} пар(ы)"
+    finished-hint: "&7Запусти: /riftadmin startnow {event}"
+    cancelled: "&cНастройка отменена."
+    # Названия кнопок
+    btn-static: "&aСтатический вход"
+    btn-dynamic: "&bДинамический вход"
+    btn-confirm: "&a✔ Подтвердить позицию"
+    btn-skip: "&6▶ Пропустить"
+    btn-back: "&7◀ Назад"
+    btn-cancel: "&cОтмена"
+    btn-add-point: "&a+ Добавить точку"
+    btn-next: "&e▶ Дальше"
+    btn-point-a: "&aA Установить точку A"
+    btn-point-b: "&bB Установить точку B"
+    btn-done: "&e✔ Готово"
+    # Названия шагов
+    step-choose-type: "Выбор типа"
+    step-entry: "Вход"
+    step-dest: "Назначение"
+    step-dynamic-pos: "Динамические точки"
+    step-exit: "Выход"
+    step-intermediate: "Промежуточные"
+
+  # === Визард зоны ===
+  zone-wizard:
+    title: "&6&l✦ Мастер настройки зоны: &e{zone}"
+    step1: "&7Шаг 1: Встань на угол 1 зоны и нажми ПКМ зелёный."
+    pos1-set: "&a✔ Угол 1 установлен!"
+    step2: "&eШаг 2: Встань на противоположный угол зоны и нажми ПКМ."
+    pos2-set: "&a✔ Угол 2 установлен!"
+    step3: "&eШаг 3: Добавь точки спавна мобов."
+    step3-hint: "&7  Зелёный = добавить, Жёлтый = дальше"
+    spawn-added: "&a✔ Точка спавна #{count} добавлена."
+    step4: "&eШаг 4: Настройка мобов."
+    step4-hint-add: "&7  Зелёный = добавить моба (через чат)"
+    step4-hint-next: "&7  Жёлтый = дальше"
+    step4-em-available: "&d  EliteMobs: доступен"
+    step4-fmm-available: "&d  FMM модели: доступны"
+    chat-type-prompt: "&bВведи тип моба в чат:"
+    chat-type-vanilla: "&7  'v' = Vanilla (ZOMBIE, SKELETON...)"
+    chat-type-em: "&7  'e' = EliteMobs (файл босса.yml)"
+    chat-type-error: "&cВведи 'v' (ваниль) или 'e' (EliteMobs):"
+    chat-id-vanilla: "&eВведи mob-id (ZOMBIE, SKELETON, CREEPER...):"
+    chat-id-em: "&eВведи имя файла босса (skybound_void_reaver.yml):"
+    chat-model: "&eВведи FMM модель (или '-' если не нужна):"
+    chat-weight: "&eВведи вес (1-10, чем больше = чаще спавнится):"
+    chat-number-error: "&cВведи число!"
+    mob-added: "&a✔ Моб добавлен! Ещё или жёлтый = дальше."
+    step5-maxmobs: "&eШаг 5: Введи макс. кол-во мобов в чат (напр. 15):"
+    maxmobs-set: "&a✔ Макс. мобов: {count}"
+    skip-pos1: "&e▶ Угол 1 пропущен."
+    skip-pos2: "&e▶ Угол 2 пропущен."
+    skip-spawns: "&e▶ Точки спавна пропущены."
+    skip-mobs: "&e▶ Мобы пропущены. Введи макс. мобов:"
+    back-nowhere: "&cНекуда возвращаться."
+    back-to: "&e◀ Возврат: {step}"
+    cancelled: "&cНастройка зоны отменена."
+    finished: "&a&l✦ Зона '{zone}' сохранена!"
+    finished-spawns: "&7Точек спавна: {count}"
+    finished-mobs: "&7Мобов в пуле: {count}"
+    finished-maxmobs: "&7Макс. мобов: {count}"
+    finished-hint: "&7Теперь укажи эту зону в events.yml: zone: \"{zone}\""
+    # Кнопки
+    btn-confirm: "&a✔ Подтвердить позицию"
+    btn-add-spawn: "&a+ Добавить точку спавна"
+    btn-add-mob: "&a+ Добавить моба"
+    btn-default-15: "&a✔ По умолчанию (15)"
+    btn-skip: "&6▶ Пропустить"
+    btn-back: "&7◀ Назад"
+    btn-next: "&e▶ Дальше"
+    btn-cancel: "&cОтмена"
+    # Названия шагов
+    step-pos1: "Угол 1"
+    step-pos2: "Угол 2"
+    step-spawns: "Точки спавна"
+    step-mobs: "Мобы"
+    step-maxmobs: "Макс. мобов"
+
+  # === Визард ивентов ===
+  event-wizard:
+    title: "&6&l✦ Мастер создания события: &e{id}"
+    step1: "&7Шаг 1/6: Введи отображаемое имя события:"
+    step1-hint: "&8(Поддерживает цветовые коды &)"
+    step2: "&eШаг 2/6: Введи тип события:"
+    step2-options: "&7  WAVE_SURVIVAL, BOSS_FIGHT, RESOURCE_RACE, CUSTOM"
+    step2-error: "&cНеизвестный тип! Доступные: WAVE_SURVIVAL, BOSS_FIGHT, RESOURCE_RACE, CUSTOM"
+    step3: "&eШаг 3/6: Введи ID зоны:"
+    step3-no-zones: "&7  (нет зон — создай через /riftadmin setupzone)"
+    step3-available: "&7  Доступные: {zones}"
+    step4: "&eШаг 4/6: Введи длительность в секундах (напр. 300):"
+    step4-min: "&cМинимум 10 секунд!"
+    step5: "&eШаг 5/6: Введи макс. игроков (напр. 10):"
+    step5-min: "&cМинимум 1!"
+    step6: "&eШаг 6/6: Введи награду (деньги, напр. 5000):"
+    step6-hint: "&7  (0 = без денежной награды)"
+    number-error: "&cВведи число!"
+    ok-name: "&a✔ Имя: {value}"
+    ok-type: "&a✔ Тип: {value}"
+    ok-zone: "&a✔ Зона: {value}"
+    ok-duration: "&a✔ Длительность: {value}с"
+    ok-players: "&a✔ Макс. игроков: {value}"
+    ok-reward: "&a✔ Награда: {value}"
+    cancelled: "&cСоздание события отменено."
+    finished: "&a&l✦ Событие '{id}' создано!"
+    finished-name: "&7Имя: {name}"
+    finished-type: "&7Тип: {type}"
+    finished-zone: "&7Зона: {zone}"
+    finished-duration: "&7Длительность: {duration}с"
+    finished-players: "&7Макс. игроков: {players}"
+    finished-reward: "&7Награда: {reward}"
+    finished-hint: "&7Настрой порталы: /riftadmin setup {id}"
+
+  # === GUI ===
+  gui:
+    title: "✦ События VoidRift"
+    status-active: "&aСтатус: Активно"
+    status-inactive: "&7Статус: Неактивно"
+    players: "&7Игроков: {count}"
+    time-remaining: "&7Осталось: {time}"
+    enter-via-portal: "&eВход через портал"
+
+  # === Дисплей ===
+  display:
+    objectives-header: "&bЦели:"
+    score: "&a★ Очки: {score}"
+    time: "&e⏱ {time}"
+    players: "&dИгроков: {count}"

@@ -129,7 +129,7 @@ public final class LootChestManager {
         for (ActiveLootChest chest : activeChests) {
             if (isSameBlock(chest.getLocation(), blockLoc)) {
                 if (chest.isOnePerPlayer() && chest.hasOpened(player.getUniqueId())) {
-                    player.sendMessage("\u00a7c\u0422\u044b \u0443\u0436\u0435 \u0437\u0430\u0431\u0440\u0430\u043b \u043b\u0443\u0442 \u0438\u0437 \u044d\u0442\u043e\u0433\u043e \u0441\u0443\u043d\u0434\u0443\u043a\u0430.");
+                    player.sendMessage(plugin.getLang().msg("messages.loot.already-looted"));
                     return true;
                 }
 
@@ -204,7 +204,7 @@ public final class LootChestManager {
         for (UUID playerId : event.getParticipants()) {
             Player p = Bukkit.getPlayer(playerId);
             if (p != null && p.isOnline()) {
-                p.sendMessage("\u00a76\u2726 \u0421\u0443\u043d\u0434\u0443\u043a \u0431\u043e\u0441\u0441\u0430 \u043f\u043e\u044f\u0432\u0438\u043b\u0441\u044f!");
+                p.sendMessage(plugin.getLang().msg("messages.loot.boss-chest-spawned"));
                 p.playSound(p.getLocation(), Sound.BLOCK_CHEST_OPEN, 1.0f, 0.8f);
             }
         }
@@ -230,7 +230,7 @@ public final class LootChestManager {
         }
 
         if (!given.isEmpty()) {
-            player.sendMessage("\u00a76\u2726 \u0422\u044b \u043f\u043e\u043b\u0443\u0447\u0438\u043b \u043b\u0443\u0442 \u0431\u043e\u0441\u0441\u0430!");
+            player.sendMessage(plugin.getLang().msg("messages.loot.boss-loot-received"));
             player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1.0f, 1.0f);
         }
     }
@@ -266,8 +266,8 @@ public final class LootChestManager {
 
     private void openLootInventory(Player player, ActiveLootChest chest) {
         String title = chest.getType() == ChestType.BOSS
-                ? "\u00a76\u2726 \u0421\u0443\u043d\u0434\u0443\u043a \u0431\u043e\u0441\u0441\u0430"
-                : "\u00a7e\u2726 \u0421\u0443\u043d\u0434\u0443\u043a \u043d\u0430\u0433\u0440\u0430\u0434";
+                ? plugin.getLang().msg("messages.loot.chest-title-boss")
+                : plugin.getLang().msg("messages.loot.chest-title-reward");
         Inventory inv = Bukkit.createInventory(null, 27, title);
         List<ItemStack> items = chest.getLootItems();
         if (items != null) {

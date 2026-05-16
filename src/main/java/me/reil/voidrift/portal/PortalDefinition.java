@@ -48,8 +48,8 @@ public final class PortalDefinition {
         this.previewSound = Sound.BLOCK_NOTE_BLOCK_PLING;
         this.previewSoundVolume = 1.0f;
         this.previewSoundPitch = 1.0f;
-        this.previewTitle = "&d\u2726 \u0421\u043e\u0431\u044b\u0442\u0438\u0435 \u043d\u0430\u0447\u0438\u043d\u0430\u0435\u0442\u0441\u044f";
-        this.previewSubtitle = "&e\u0427\u0435\u0440\u0435\u0437 {seconds} \u0441\u0435\u043a...";
+        this.previewTitle = "&d✦ Событие начинается";
+        this.previewSubtitle = "&eЧерез {seconds} сек...";
         this.previewSeconds = 10;
     }
 

@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,12 +52,15 @@ public final class SetupWizard {
         clearHotbar(player);
         giveStepItems(player, session);
 
+        Map<String, String> v = new HashMap<String, String>();
+        v.put("event", eventId);
+
         player.sendMessage("");
-        player.sendMessage(ChatColor.GOLD + "" + ChatColor.BOLD + "\u2726 \u041c\u0430\u0441\u0442\u0435\u0440 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 \u043f\u043e\u0440\u0442\u0430\u043b\u043e\u0432: " + ChatColor.YELLOW + eventId);
-        player.sendMessage(ChatColor.GRAY + "\u0428\u0430\u0433 1: \u0412\u044b\u0431\u0435\u0440\u0438 \u0442\u0438\u043f \u0432\u0445\u043e\u0434\u0430");
-        player.sendMessage(ChatColor.GREEN + "  \u041f\u041a\u041c \u0437\u0435\u043b\u0451\u043d\u044b\u0439 \u0448\u0430\u0440 = \u0421\u0442\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438\u0439");
-        player.sendMessage(ChatColor.AQUA + "  \u041f\u041a\u041c \u0433\u043e\u043b\u0443\u0431\u043e\u0439 \u0448\u0430\u0440 = \u0414\u0438\u043d\u0430\u043c\u0438\u0447\u0435\u0441\u043a\u0438\u0439");
-        player.sendMessage(ChatColor.RED + "  \u041f\u041a\u041c \u043a\u0440\u0430\u0441\u043d\u044b\u0439 = \u041e\u0442\u043c\u0435\u043d\u0430");
+        player.sendMessage(plugin.getLang().msg("messages.wizard.title", v));
+        player.sendMessage(plugin.getLang().msg("messages.wizard.step1-choose"));
+        player.sendMessage(plugin.getLang().msg("messages.wizard.step1-static"));
+        player.sendMessage(plugin.getLang().msg("messages.wizard.step1-dynamic"));
+        player.sendMessage(plugin.getLang().msg("messages.wizard.step1-cancel"));
         player.sendMessage("");
     }
 
@@ -98,7 +102,7 @@ public final class SetupWizard {
     public void cancel(Player player) {
         sessions.remove(player.getUniqueId());
         clearHotbar(player);
-        player.sendMessage(ChatColor.RED + "\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430 \u043e\u0442\u043c\u0435\u043d\u0435\u043d\u0430.");
+        player.sendMessage(plugin.getLang().msg("messages.wizard.cancelled"));
     }
 
     // ===== Step handlers =====
@@ -108,12 +112,12 @@ public final class SetupWizard {
             session.setEntryType(PortalType.ENTRY);
             session.setStep(WizardStep.SET_ENTRY);
             refreshStep(player, session);
-            player.sendMessage(ChatColor.YELLOW + "\u0428\u0430\u0433 2: \u0412\u0441\u0442\u0430\u043d\u044c \u0433\u0434\u0435 \u0431\u0443\u0434\u0435\u0442 \u043f\u043e\u0440\u0442\u0430\u043b \u0432\u0445\u043e\u0434\u0430 \u0438 \u043d\u0430\u0436\u043c\u0438 \u041f\u041a\u041c \u043d\u0430 \u0437\u0435\u043b\u0451\u043d\u044b\u0439 \u0431\u043b\u043e\u043a.");
+            player.sendMessage(plugin.getLang().msg("messages.wizard.step2-entry"));
         } else if (slot == 1) { // Dynamic
             session.setEntryType(PortalType.DYNAMIC);
             session.setStep(WizardStep.SET_DEST);
             refreshStep(player, session);
-            player.sendMessage(ChatColor.YELLOW + "\u0428\u0430\u0433 2: \u0412\u0441\u0442\u0430\u043d\u044c \u043d\u0430 \u0435\u0432\u0435\u043d\u0442-\u043b\u043e\u043a\u0430\u0446\u0438\u0438 (\u043a\u0443\u0434\u0430 \u0422\u041f) \u0438 \u043d\u0430\u0436\u043c\u0438 \u041f\u041a\u041c.");
+            player.sendMessage(plugin.getLang().msg("messages.wizard.step2-dynamic"));
         }
         return true;
     }
@@ -122,10 +126,10 @@ public final class SetupWizard {
         if (slot == 0) {
             plugin.getPortalManager().createPortal(session.getEventId(), "entry", session.getEntryType());
             plugin.getPortalManager().setPortalLocation(session.getEventId(), "entry", player.getLocation());
-            player.sendMessage(ChatColor.GREEN + "\u2714 \u0412\u0445\u043e\u0434 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d!");
+            player.sendMessage(plugin.getLang().msg("messages.wizard.entry-set"));
             session.setStep(WizardStep.SET_DEST);
             refreshStep(player, session);
-            player.sendMessage(ChatColor.YELLOW + "\u0428\u0430\u0433 3: \u0412\u0441\u0442\u0430\u043d\u044c \u043d\u0430 \u0435\u0432\u0435\u043d\u0442-\u043b\u043e\u043a\u0430\u0446\u0438\u0438 \u0438 \u043d\u0430\u0436\u043c\u0438 \u041f\u041a\u041c.");
+            player.sendMessage(plugin.getLang().msg("messages.wizard.step3-dest"));
         }
         return true;
     }
@@ -134,15 +138,15 @@ public final class SetupWizard {
         if (slot == 0) {
             plugin.getPortalManager().createPortal(session.getEventId(), "entry", session.getEntryType());
             plugin.getPortalManager().setPortalDestination(session.getEventId(), "entry", player.getLocation());
-            player.sendMessage(ChatColor.GREEN + "\u2714 \u041d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043e!");
+            player.sendMessage(plugin.getLang().msg("messages.wizard.dest-set"));
             if (session.getEntryType() == PortalType.DYNAMIC) {
                 session.setStep(WizardStep.ADD_DYNAMIC_POS);
                 refreshStep(player, session);
-                player.sendMessage(ChatColor.YELLOW + "\u0428\u0430\u0433 3.5: \u0414\u043e\u0431\u0430\u0432\u044c \u0442\u043e\u0447\u043a\u0438 \u043f\u043e\u044f\u0432\u043b\u0435\u043d\u0438\u044f. \u041f\u041a\u041c \u0437\u0435\u043b\u0451\u043d\u044b\u0439 = \u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c, \u0436\u0451\u043b\u0442\u044b\u0439 = \u0434\u0430\u043b\u044c\u0448\u0435.");
+                player.sendMessage(plugin.getLang().msg("messages.wizard.step35-dynamic"));
             } else {
                 session.setStep(WizardStep.SET_EXIT);
                 refreshStep(player, session);
-                player.sendMessage(ChatColor.YELLOW + "\u0428\u0430\u0433 4: \u0412\u0441\u0442\u0430\u043d\u044c \u0433\u0434\u0435 \u0432\u044b\u0445\u043e\u0434 \u0438\u0437 \u0435\u0432\u0435\u043d\u0442\u0430 \u0438 \u043d\u0430\u0436\u043c\u0438 \u041f\u041a\u041c.");
+                player.sendMessage(plugin.getLang().msg("messages.wizard.step4-exit"));
             }
         }
         return true;
@@ -152,11 +156,13 @@ public final class SetupWizard {
         if (slot == 0) { // Add position
             plugin.getPortalManager().addDynamicLocation(session.getEventId(), "entry", player.getLocation());
             session.incrementDynamicCount();
-            player.sendMessage(ChatColor.GREEN + "\u2714 \u0422\u043e\u0447\u043a\u0430 #" + session.getDynamicCount() + " \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u0430. \u0415\u0449\u0451 \u0438\u043b\u0438 \u0436\u0451\u043b\u0442\u044b\u0439 = \u0434\u0430\u043b\u044c\u0448\u0435.");
+            Map<String, String> v = new HashMap<String, String>();
+            v.put("count", String.valueOf(session.getDynamicCount()));
+            player.sendMessage(plugin.getLang().msg("messages.wizard.dynamic-point-added", v));
         } else if (slot == 1) { // Next step
             session.setStep(WizardStep.SET_EXIT);
             refreshStep(player, session);
-            player.sendMessage(ChatColor.YELLOW + "\u0428\u0430\u0433 4: \u0412\u0441\u0442\u0430\u043d\u044c \u0433\u0434\u0435 \u0432\u044b\u0445\u043e\u0434 \u0438 \u043d\u0430\u0436\u043c\u0438 \u041f\u041a\u041c.");
+            player.sendMessage(plugin.getLang().msg("messages.wizard.step4-exit"));
         }
         return true;
     }
@@ -165,16 +171,20 @@ public final class SetupWizard {
         if (slot == 0) {
             plugin.getPortalManager().createPortal(session.getEventId(), "exit", PortalType.EXIT);
             plugin.getPortalManager().setPortalLocation(session.getEventId(), "exit", player.getLocation());
-            player.sendMessage(ChatColor.GREEN + "\u2714 \u0412\u044b\u0445\u043e\u0434 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d!");
+            player.sendMessage(plugin.getLang().msg("messages.wizard.exit-set"));
             // Move to intermediate portals step
             session.setStep(WizardStep.ADD_INTERMEDIATE);
             refreshStep(player, session);
+
+            Map<String, String> v = new HashMap<String, String>();
+            v.put("event", session.getEventId());
+
             player.sendMessage("");
-            player.sendMessage(ChatColor.YELLOW + "\u0428\u0430\u0433 5: \u041f\u0440\u043e\u043c\u0435\u0436\u0443\u0442\u043e\u0447\u043d\u044b\u0435 \u043f\u043e\u0440\u0442\u0430\u043b\u044b (\u0434\u0432\u0443\u0441\u0442\u043e\u0440\u043e\u043d\u043d\u0438\u0435)");
-            player.sendMessage(ChatColor.GRAY + "  \u0417\u0435\u043b\u0451\u043d\u044b\u0439 = \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0442\u043e\u0447\u043a\u0443 A");
-            player.sendMessage(ChatColor.GRAY + "  \u0413\u043e\u043b\u0443\u0431\u043e\u0439 = \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0442\u043e\u0447\u043a\u0443 B (\u0441\u043e\u0437\u0434\u0430\u0441\u0442 \u043f\u0430\u0440\u0443)");
-            player.sendMessage(ChatColor.GRAY + "  \u0416\u0451\u043b\u0442\u044b\u0439 = \u0413\u043e\u0442\u043e\u0432\u043e (\u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044c)");
-            player.sendMessage(ChatColor.GRAY + "  ID: " + session.getEventId() + "_loc1, _loc2...");
+            player.sendMessage(plugin.getLang().msg("messages.wizard.step5-intermediate"));
+            player.sendMessage(plugin.getLang().msg("messages.wizard.step5-hint-a"));
+            player.sendMessage(plugin.getLang().msg("messages.wizard.step5-hint-b"));
+            player.sendMessage(plugin.getLang().msg("messages.wizard.step5-hint-done"));
+            player.sendMessage(plugin.getLang().msg("messages.wizard.step5-ids", v));
         }
         return true;
     }
@@ -185,7 +195,7 @@ public final class SetupWizard {
         if (slot == 0) {
             // Set point A — store temporarily
             pairs.add(player.getLocation().clone());
-            player.sendMessage(ChatColor.GREEN + "\u2714 \u0422\u043e\u0447\u043a\u0430 A \u0437\u0430\u043f\u043e\u043c\u043d\u0435\u043d\u0430. \u0422\u0435\u043f\u0435\u0440\u044c \u0432\u0441\u0442\u0430\u043d\u044c \u043d\u0430 \u0442\u043e\u0447\u043a\u0443 B \u0438 \u043d\u0430\u0436\u043c\u0438 \u0433\u043e\u043b\u0443\u0431\u043e\u0439.");
+            player.sendMessage(plugin.getLang().msg("messages.wizard.point-a-set"));
             return true;
         }
 
@@ -193,7 +203,7 @@ public final class SetupWizard {
             // Set point B — create bidirectional pair
             if (pairs.size() % 2 == 0) {
                 // No point A set yet
-                player.sendMessage(ChatColor.RED + "\u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438 \u0442\u043e\u0447\u043a\u0443 A (\u0437\u0435\u043b\u0451\u043d\u044b\u0439)!");
+                player.sendMessage(plugin.getLang().msg("messages.wizard.point-a-first"));
                 return true;
             }
             pairs.add(player.getLocation().clone());
@@ -217,8 +227,12 @@ public final class SetupWizard {
             plugin.getPortalManager().setPortalLocation(session.getEventId(), idB, locB);
             plugin.getPortalManager().setPortalDestination(session.getEventId(), idB, locA);
 
-            player.sendMessage(ChatColor.GREEN + "\u2714 \u041f\u0430\u0440\u0430 #" + idx + " \u0441\u043e\u0437\u0434\u0430\u043d\u0430! (" + idA + " \u2194 " + idB + ")");
-            player.sendMessage(ChatColor.GRAY + "  \u0414\u043e\u0431\u0430\u0432\u044c \u0435\u0449\u0451 \u0438\u043b\u0438 \u043d\u0430\u0436\u043c\u0438 \u0436\u0451\u043b\u0442\u044b\u0439 = \u0413\u043e\u0442\u043e\u0432\u043e.");
+            Map<String, String> v = new HashMap<String, String>();
+            v.put("idx", String.valueOf(idx));
+            v.put("idA", idA);
+            v.put("idB", idB);
+            player.sendMessage(plugin.getLang().msg("messages.wizard.pair-created", v));
+            player.sendMessage(plugin.getLang().msg("messages.wizard.pair-hint"));
             return true;
         }
 
@@ -236,36 +250,32 @@ public final class SetupWizard {
     private void handleSkip(Player player, WizardSession session) {
         switch (session.getStep()) {
             case CHOOSE_TYPE:
-                // Skip type choice — jump straight to exit setup
                 session.setEntryType(PortalType.ENTRY);
                 session.setStep(WizardStep.SET_EXIT);
                 refreshStep(player, session);
-                player.sendMessage(ChatColor.YELLOW + "\u25B6 \u0412\u044b\u0431\u043e\u0440 \u0442\u0438\u043f\u0430 \u043f\u0440\u043e\u043f\u0443\u0449\u0435\u043d. \u0423\u0441\u0442\u0430\u043d\u043e\u0432\u0438 \u0432\u044b\u0445\u043e\u0434 \u0438\u043b\u0438 \u043f\u0440\u043e\u043f\u0443\u0441\u0442\u0438 \u0434\u0430\u043b\u044c\u0448\u0435.");
+                player.sendMessage(plugin.getLang().msg("messages.wizard.skip-type"));
                 return;
             case SET_ENTRY:
-                // Skip entry — go to dest
                 session.setStep(WizardStep.SET_DEST);
                 refreshStep(player, session);
-                player.sendMessage(ChatColor.YELLOW + "\u25B6 \u0412\u0445\u043e\u0434 \u043f\u0440\u043e\u043f\u0443\u0449\u0435\u043d. \u0423\u0441\u0442\u0430\u043d\u043e\u0432\u0438 \u043d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435.");
+                player.sendMessage(plugin.getLang().msg("messages.wizard.skip-entry"));
                 return;
             case SET_DEST:
                 session.setStep(WizardStep.SET_EXIT);
                 refreshStep(player, session);
-                player.sendMessage(ChatColor.YELLOW + "\u25B6 \u041d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 \u043f\u0440\u043e\u043f\u0443\u0449\u0435\u043d\u043e. \u0423\u0441\u0442\u0430\u043d\u043e\u0432\u0438 \u0432\u044b\u0445\u043e\u0434.");
+                player.sendMessage(plugin.getLang().msg("messages.wizard.skip-dest"));
                 return;
             case ADD_DYNAMIC_POS:
                 session.setStep(WizardStep.SET_EXIT);
                 refreshStep(player, session);
-                player.sendMessage(ChatColor.YELLOW + "\u25B6 \u0414\u0438\u043d\u0430\u043c\u0438\u0447\u0435\u0441\u043a\u0438\u0435 \u0442\u043e\u0447\u043a\u0438 \u043f\u0440\u043e\u043f\u0443\u0449\u0435\u043d\u044b. \u0423\u0441\u0442\u0430\u043d\u043e\u0432\u0438 \u0432\u044b\u0445\u043e\u0434.");
+                player.sendMessage(plugin.getLang().msg("messages.wizard.skip-dynamic"));
                 return;
             case SET_EXIT:
-                // Skip exit — go to intermediate
                 session.setStep(WizardStep.ADD_INTERMEDIATE);
                 refreshStep(player, session);
-                player.sendMessage(ChatColor.YELLOW + "\u25B6 \u0412\u044b\u0445\u043e\u0434 \u043f\u0440\u043e\u043f\u0443\u0449\u0435\u043d. \u041f\u0440\u043e\u043c\u0435\u0436\u0443\u0442\u043e\u0447\u043d\u044b\u0435 \u043f\u043e\u0440\u0442\u0430\u043b\u044b.");
+                player.sendMessage(plugin.getLang().msg("messages.wizard.skip-exit"));
                 return;
             case ADD_INTERMEDIATE:
-                // Skip intermediate — finish
                 finishWizard(player, session);
                 return;
             default:
@@ -276,24 +286,31 @@ public final class SetupWizard {
     private void handleBack(Player player, WizardSession session) {
         WizardStep prev = session.getPreviousStep();
         if (prev == null) {
-            player.sendMessage(ChatColor.RED + "\u041d\u0435\u043a\u0443\u0434\u0430 \u0432\u043e\u0437\u0432\u0440\u0430\u0449\u0430\u0442\u044c\u0441\u044f.");
+            player.sendMessage(plugin.getLang().msg("messages.wizard.back-nowhere"));
             return;
         }
         session.goBack();
         refreshStep(player, session);
-        player.sendMessage(ChatColor.YELLOW + "\u25C0 \u0412\u043e\u0437\u0432\u0440\u0430\u0442 \u043d\u0430 \u043f\u0440\u0435\u0434\u044b\u0434\u0443\u0449\u0438\u0439 \u0448\u0430\u0433: " + stepName(session.getStep()));
+        Map<String, String> v = new HashMap<String, String>();
+        v.put("step", stepName(session.getStep()));
+        player.sendMessage(plugin.getLang().msg("messages.wizard.back-to", v));
     }
 
     private void finishWizard(Player player, WizardSession session) {
         session.setStep(WizardStep.DONE);
         clearHotbar(player);
         sessions.remove(player.getUniqueId());
+
+        Map<String, String> v = new HashMap<String, String>();
+        v.put("event", session.getEventId());
+        v.put("count", String.valueOf(session.getIntermediateCount()));
+
         player.sendMessage("");
-        player.sendMessage(ChatColor.GREEN + "" + ChatColor.BOLD + "\u2726 \u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u0430!");
+        player.sendMessage(plugin.getLang().msg("messages.wizard.finished"));
         if (session.getIntermediateCount() > 0) {
-            player.sendMessage(ChatColor.GRAY + "\u041f\u0440\u043e\u043c\u0435\u0436\u0443\u0442\u043e\u0447\u043d\u044b\u0445 \u043f\u043e\u0440\u0442\u0430\u043b\u043e\u0432: " + session.getIntermediateCount() + " \u043f\u0430\u0440(\u044b)");
+            player.sendMessage(plugin.getLang().msg("messages.wizard.finished-intermediate", v));
         }
-        player.sendMessage(ChatColor.GRAY + "\u0417\u0430\u043f\u0443\u0441\u0442\u0438: /riftadmin startnow " + session.getEventId());
+        player.sendMessage(plugin.getLang().msg("messages.wizard.finished-hint", v));
         player.sendMessage("");
     }
 
@@ -307,33 +324,33 @@ public final class SetupWizard {
     private void giveStepItems(Player player, WizardSession session) {
         switch (session.getStep()) {
             case CHOOSE_TYPE:
-                player.getInventory().setItem(0, makeItem(Material.LIME_CONCRETE, ChatColor.GREEN + "\u0421\u0442\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438\u0439 \u0432\u0445\u043e\u0434"));
-                player.getInventory().setItem(1, makeItem(Material.LIGHT_BLUE_CONCRETE, ChatColor.AQUA + "\u0414\u0438\u043d\u0430\u043c\u0438\u0447\u0435\u0441\u043a\u0438\u0439 \u0432\u0445\u043e\u0434"));
-                player.getInventory().setItem(6, makeItem(Material.ORANGE_CONCRETE, ChatColor.GOLD + "\u25B6 \u041f\u0440\u043e\u043f\u0443\u0441\u0442\u0438\u0442\u044c"));
-                player.getInventory().setItem(8, makeItem(Material.RED_CONCRETE, ChatColor.RED + "\u041e\u0442\u043c\u0435\u043d\u0430"));
+                player.getInventory().setItem(0, makeItem(Material.LIME_CONCRETE, plugin.getLang().msg("messages.wizard.btn-static")));
+                player.getInventory().setItem(1, makeItem(Material.LIGHT_BLUE_CONCRETE, plugin.getLang().msg("messages.wizard.btn-dynamic")));
+                player.getInventory().setItem(6, makeItem(Material.ORANGE_CONCRETE, plugin.getLang().msg("messages.wizard.btn-skip")));
+                player.getInventory().setItem(8, makeItem(Material.RED_CONCRETE, plugin.getLang().msg("messages.wizard.btn-cancel")));
                 break;
             case SET_ENTRY:
             case SET_DEST:
             case SET_EXIT:
-                player.getInventory().setItem(0, makeItem(Material.LIME_CONCRETE, ChatColor.GREEN + "\u2714 \u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044c \u043f\u043e\u0437\u0438\u0446\u0438\u044e"));
-                player.getInventory().setItem(6, makeItem(Material.ORANGE_CONCRETE, ChatColor.GOLD + "\u25B6 \u041f\u0440\u043e\u043f\u0443\u0441\u0442\u0438\u0442\u044c"));
-                player.getInventory().setItem(7, makeItem(Material.GRAY_CONCRETE, ChatColor.GRAY + "\u25C0 \u041d\u0430\u0437\u0430\u0434"));
-                player.getInventory().setItem(8, makeItem(Material.RED_CONCRETE, ChatColor.RED + "\u041e\u0442\u043c\u0435\u043d\u0430"));
+                player.getInventory().setItem(0, makeItem(Material.LIME_CONCRETE, plugin.getLang().msg("messages.wizard.btn-confirm")));
+                player.getInventory().setItem(6, makeItem(Material.ORANGE_CONCRETE, plugin.getLang().msg("messages.wizard.btn-skip")));
+                player.getInventory().setItem(7, makeItem(Material.GRAY_CONCRETE, plugin.getLang().msg("messages.wizard.btn-back")));
+                player.getInventory().setItem(8, makeItem(Material.RED_CONCRETE, plugin.getLang().msg("messages.wizard.btn-cancel")));
                 break;
             case ADD_DYNAMIC_POS:
-                player.getInventory().setItem(0, makeItem(Material.LIME_CONCRETE, ChatColor.GREEN + "+ \u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0442\u043e\u0447\u043a\u0443"));
-                player.getInventory().setItem(1, makeItem(Material.YELLOW_CONCRETE, ChatColor.YELLOW + "\u25B6 \u0414\u0430\u043b\u044c\u0448\u0435"));
-                player.getInventory().setItem(6, makeItem(Material.ORANGE_CONCRETE, ChatColor.GOLD + "\u25B6 \u041f\u0440\u043e\u043f\u0443\u0441\u0442\u0438\u0442\u044c"));
-                player.getInventory().setItem(7, makeItem(Material.GRAY_CONCRETE, ChatColor.GRAY + "\u25C0 \u041d\u0430\u0437\u0430\u0434"));
-                player.getInventory().setItem(8, makeItem(Material.RED_CONCRETE, ChatColor.RED + "\u041e\u0442\u043c\u0435\u043d\u0430"));
+                player.getInventory().setItem(0, makeItem(Material.LIME_CONCRETE, plugin.getLang().msg("messages.wizard.btn-add-point")));
+                player.getInventory().setItem(1, makeItem(Material.YELLOW_CONCRETE, plugin.getLang().msg("messages.wizard.btn-next")));
+                player.getInventory().setItem(6, makeItem(Material.ORANGE_CONCRETE, plugin.getLang().msg("messages.wizard.btn-skip")));
+                player.getInventory().setItem(7, makeItem(Material.GRAY_CONCRETE, plugin.getLang().msg("messages.wizard.btn-back")));
+                player.getInventory().setItem(8, makeItem(Material.RED_CONCRETE, plugin.getLang().msg("messages.wizard.btn-cancel")));
                 break;
             case ADD_INTERMEDIATE:
-                player.getInventory().setItem(0, makeItem(Material.LIME_CONCRETE, ChatColor.GREEN + "A \u0423\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0442\u043e\u0447\u043a\u0443 A"));
-                player.getInventory().setItem(1, makeItem(Material.LIGHT_BLUE_CONCRETE, ChatColor.AQUA + "B \u0423\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0442\u043e\u0447\u043a\u0443 B"));
-                player.getInventory().setItem(2, makeItem(Material.YELLOW_CONCRETE, ChatColor.YELLOW + "\u2714 \u0413\u043e\u0442\u043e\u0432\u043e"));
-                player.getInventory().setItem(6, makeItem(Material.ORANGE_CONCRETE, ChatColor.GOLD + "\u25B6 \u041f\u0440\u043e\u043f\u0443\u0441\u0442\u0438\u0442\u044c"));
-                player.getInventory().setItem(7, makeItem(Material.GRAY_CONCRETE, ChatColor.GRAY + "\u25C0 \u041d\u0430\u0437\u0430\u0434"));
-                player.getInventory().setItem(8, makeItem(Material.RED_CONCRETE, ChatColor.RED + "\u041e\u0442\u043c\u0435\u043d\u0430"));
+                player.getInventory().setItem(0, makeItem(Material.LIME_CONCRETE, plugin.getLang().msg("messages.wizard.btn-point-a")));
+                player.getInventory().setItem(1, makeItem(Material.LIGHT_BLUE_CONCRETE, plugin.getLang().msg("messages.wizard.btn-point-b")));
+                player.getInventory().setItem(2, makeItem(Material.YELLOW_CONCRETE, plugin.getLang().msg("messages.wizard.btn-done")));
+                player.getInventory().setItem(6, makeItem(Material.ORANGE_CONCRETE, plugin.getLang().msg("messages.wizard.btn-skip")));
+                player.getInventory().setItem(7, makeItem(Material.GRAY_CONCRETE, plugin.getLang().msg("messages.wizard.btn-back")));
+                player.getInventory().setItem(8, makeItem(Material.RED_CONCRETE, plugin.getLang().msg("messages.wizard.btn-cancel")));
                 break;
             default:
                 break;
@@ -358,12 +375,12 @@ public final class SetupWizard {
 
     private String stepName(WizardStep step) {
         switch (step) {
-            case CHOOSE_TYPE: return "\u0412\u044b\u0431\u043e\u0440 \u0442\u0438\u043f\u0430";
-            case SET_ENTRY: return "\u0412\u0445\u043e\u0434";
-            case SET_DEST: return "\u041d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435";
-            case ADD_DYNAMIC_POS: return "\u0414\u0438\u043d\u0430\u043c\u0438\u0447\u0435\u0441\u043a\u0438\u0435 \u0442\u043e\u0447\u043a\u0438";
-            case SET_EXIT: return "\u0412\u044b\u0445\u043e\u0434";
-            case ADD_INTERMEDIATE: return "\u041f\u0440\u043e\u043c\u0435\u0436\u0443\u0442\u043e\u0447\u043d\u044b\u0435";
+            case CHOOSE_TYPE: return plugin.getLang().msg("messages.wizard.step-choose-type");
+            case SET_ENTRY: return plugin.getLang().msg("messages.wizard.step-entry");
+            case SET_DEST: return plugin.getLang().msg("messages.wizard.step-dest");
+            case ADD_DYNAMIC_POS: return plugin.getLang().msg("messages.wizard.step-dynamic-pos");
+            case SET_EXIT: return plugin.getLang().msg("messages.wizard.step-exit");
+            case ADD_INTERMEDIATE: return plugin.getLang().msg("messages.wizard.step-intermediate");
             default: return step.name();
         }
     }

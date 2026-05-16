@@ -308,7 +308,7 @@ public final class ObjectiveTracker {
                 // Send title with objective summary
                 String completedObjective = getCompletedObjectiveSummary(objectives);
                 player.sendTitle(
-                        ChatColor.GREEN + "\u2726 \u0426\u0435\u043b\u044c \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0430!",
+                        plugin.getLang().msg("messages.objective.complete-title"),
                         ChatColor.YELLOW + completedObjective,
                         10, 60, 20
                 );
@@ -485,16 +485,16 @@ public final class ObjectiveTracker {
 
     private String objectiveName(Objective obj) {
         switch (obj.getType()) {
-            case KILL_MOBS: return "\u0423\u0431\u0438\u0442\u044c \u043c\u043e\u0431\u043e\u0432";
-            case KILL_BOSS: return "\u0423\u0431\u0438\u0442\u044c \u0431\u043e\u0441\u0441\u0430";
-            case KILL_ELITE: return "\u0423\u0431\u0438\u0442\u044c \u044d\u043b\u0438\u0442\u0443";
-            case SURVIVE_TIME: return "\u0412\u044b\u0436\u0438\u0442\u044c";
-            case REACH_WAVE: return "\u0414\u043e\u0439\u0442\u0438 \u0434\u043e \u0432\u043e\u043b\u043d\u044b";
-            case COLLECT_ITEM: return "\u0421\u043e\u0431\u0440\u0430\u0442\u044c";
-            case MINE_BLOCK: return "\u0421\u043b\u043e\u043c\u0430\u0442\u044c";
-            case SCORE_POINTS: return "\u041d\u0430\u0431\u0440\u0430\u0442\u044c \u043e\u0447\u043a\u0438";
-            case NO_DEATH: return "\u041d\u0435 \u0443\u043c\u0435\u0440\u0435\u0442\u044c";
-            case DEAL_DAMAGE: return "\u041d\u0430\u043d\u0435\u0441\u0442\u0438 \u0443\u0440\u043e\u043d";
+            case KILL_MOBS: return plugin.getLang().msg("messages.objective-names.kill-mobs");
+            case KILL_BOSS: return plugin.getLang().msg("messages.objective-names.kill-boss");
+            case KILL_ELITE: return plugin.getLang().msg("messages.objective-names.kill-elite");
+            case SURVIVE_TIME: return plugin.getLang().msg("messages.objective-names.survive-time");
+            case REACH_WAVE: return plugin.getLang().msg("messages.objective-names.reach-wave");
+            case COLLECT_ITEM: return plugin.getLang().msg("messages.objective-names.collect-item");
+            case MINE_BLOCK: return plugin.getLang().msg("messages.objective-names.mine-block");
+            case SCORE_POINTS: return plugin.getLang().msg("messages.objective-names.score-points");
+            case NO_DEATH: return plugin.getLang().msg("messages.objective-names.no-death");
+            case DEAL_DAMAGE: return plugin.getLang().msg("messages.objective-names.deal-damage");
             default: return obj.getType().name();
         }
     }

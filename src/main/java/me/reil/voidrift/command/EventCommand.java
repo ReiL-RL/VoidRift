@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -32,7 +33,6 @@ public final class EventCommand implements CommandExecutor, TabCompleter {
         Player p = (Player) sender;
 
         if (args.length == 0) {
-            // Open GUI
             plugin.getEventGui().open(p);
             return true;
         }
@@ -40,24 +40,24 @@ public final class EventCommand implements CommandExecutor, TabCompleter {
         String sub = args[0].toLowerCase();
         switch (sub) {
             case "join":
-                if (args.length < 2) { p.sendMessage(ChatColor.RED + "/event join <id>"); return true; }
+                if (args.length < 2) { p.sendMessage(plugin.getLang().msg("messages.admin.usage-join")); return true; }
                 boolean joined = plugin.getEventManager().joinEvent(p, args[1]);
-                p.sendMessage(joined ? ChatColor.GREEN + "\u0422\u044b \u043f\u0440\u0438\u0441\u043e\u0435\u0434\u0438\u043d\u0438\u043b\u0441\u044f \u043a \u0441\u043e\u0431\u044b\u0442\u0438\u044e!" : ChatColor.RED + "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u0440\u0438\u0441\u043e\u0435\u0434\u0438\u043d\u0438\u0442\u044c\u0441\u044f.");
+                p.sendMessage(joined ? plugin.getLang().msgFor(p, "messages.event.join-success") : plugin.getLang().msgFor(p, "messages.event.join-fail"));
                 break;
             case "leave":
                 String eventId = findPlayerEvent(p);
                 if (eventId != null) {
                     plugin.getEventManager().leaveEvent(p, eventId);
-                    p.sendMessage(ChatColor.YELLOW + "\u0422\u044b \u043f\u043e\u043a\u0438\u043d\u0443\u043b \u0441\u043e\u0431\u044b\u0442\u0438\u0435.");
+                    p.sendMessage(plugin.getLang().msgFor(p, "messages.event.leave-success"));
                 } else {
-                    p.sendMessage(ChatColor.RED + "\u0422\u044b \u043d\u0435 \u0443\u0447\u0430\u0441\u0442\u0432\u0443\u0435\u0448\u044c \u0432 \u0441\u043e\u0431\u044b\u0442\u0438\u0438.");
+                    p.sendMessage(plugin.getLang().msgFor(p, "messages.event.leave-not-in"));
                 }
                 break;
             case "list":
-                p.sendMessage(ChatColor.GOLD + "" + ChatColor.BOLD + "\u2726 \u0412\u0441\u0435 \u0441\u043e\u0431\u044b\u0442\u0438\u044f:");
+                p.sendMessage(plugin.getLang().msg("messages.event.list-header"));
                 for (EventDefinition def : plugin.getEventManager().getDefinitions()) {
                     boolean active = plugin.getEventManager().getActiveEvent(def.getId()) != null;
-                    p.sendMessage((active ? ChatColor.GREEN + "\u25CF " : ChatColor.GRAY + "\u25CB ") + ChatColor.YELLOW + def.getDisplayName() + ChatColor.GRAY + " [" + def.getId() + "]");
+                    p.sendMessage((active ? ChatColor.GREEN + "● " : ChatColor.GRAY + "○ ") + ChatColor.YELLOW + def.getDisplayName() + ChatColor.GRAY + " [" + def.getId() + "]");
                 }
                 break;
             case "top":
@@ -67,77 +67,85 @@ public final class EventCommand implements CommandExecutor, TabCompleter {
                 plugin.getEventGui().open(p);
                 break;
             default:
-                p.sendMessage(ChatColor.RED + "/event [join|leave|list|top|gui]");
+                p.sendMessage(plugin.getLang().msg("messages.admin.usage-event"));
                 break;
         }
         return true;
     }
 
     private void handleTop(Player p, String[] args) {
-        // Show leaderboard from persistent storage
         String eventId = null;
         if (args.length >= 2) {
             eventId = args[1];
         } else {
-            // Try player's current event first
             ActiveEvent playerEvent = getPlayerActiveEvent(p);
             if (playerEvent != null) {
                 eventId = playerEvent.getDefinition().getId();
             } else {
-                // Try first event with leaderboard data
                 eventId = plugin.getLeaderboard().getFirstEventId();
             }
         }
 
         if (eventId == null) {
-            // Fallback: show active event scores
             ActiveEvent event = null;
             for (ActiveEvent ae : plugin.getEventManager().getActiveEvents()) {
                 event = ae;
                 break;
             }
             if (event == null) {
-                p.sendMessage(ChatColor.RED + "\u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445 \u043b\u0438\u0434\u0435\u0440\u0431\u043e\u0440\u0434\u0430.");
+                p.sendMessage(plugin.getLang().msgFor(p, "messages.event.no-leaderboard"));
                 return;
             }
             showActiveEventTop(p, event);
             return;
         }
 
-        // Show persistent leaderboard
         java.util.List<me.reil.voidrift.leaderboard.LeaderboardEntry> top = plugin.getLeaderboard().getTop(eventId);
         if (top.isEmpty()) {
-            // Fallback to active event scores
             ActiveEvent active = plugin.getEventManager().getActiveEvent(eventId);
             if (active != null) {
                 showActiveEventTop(p, active);
             } else {
-                p.sendMessage(ChatColor.RED + "\u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445 \u043b\u0438\u0434\u0435\u0440\u0431\u043e\u0440\u0434\u0430 \u0434\u043b\u044f: " + eventId);
+                Map<String, String> vars = new HashMap<String, String>();
+                vars.put("id", eventId);
+                p.sendMessage(plugin.getLang().msgFor(p, "messages.event.no-leaderboard-for", vars));
             }
             return;
         }
 
         EventDefinition def = plugin.getEventManager().getDefinition(eventId);
         String title = def != null ? def.getDisplayName() : eventId;
-        p.sendMessage(ChatColor.GOLD + "" + ChatColor.BOLD + "\u2726 \u0422\u043e\u043f-10: " + ChatColor.translateAlternateColorCodes('&', title));
+        Map<String, String> headerVars = new HashMap<String, String>();
+        headerVars.put("event", title);
+        p.sendMessage(plugin.getLang().msgFor(p, "messages.event.leaderboard-header", headerVars));
         int rank = 1;
         for (me.reil.voidrift.leaderboard.LeaderboardEntry entry : top) {
-            p.sendMessage(ChatColor.YELLOW + "  #" + rank + " " + ChatColor.WHITE + entry.getPlayerName() + ChatColor.GRAY + " \u2014 " + ChatColor.GREEN + entry.getScore() + " \u043e\u0447\u043a\u043e\u0432");
+            Map<String, String> entryVars = new HashMap<String, String>();
+            entryVars.put("rank", String.valueOf(rank));
+            entryVars.put("player", entry.getPlayerName());
+            entryVars.put("score", String.valueOf(entry.getScore()));
+            p.sendMessage(plugin.getLang().msgFor(p, "messages.event.leaderboard-entry", entryVars));
             rank++;
         }
     }
 
     private void showActiveEventTop(Player p, ActiveEvent event) {
         List<Map.Entry<UUID, Integer>> top = event.getTopPlayers(10);
-        p.sendMessage(ChatColor.GOLD + "" + ChatColor.BOLD + "\u2726 \u0422\u043e\u043f-10: " + event.getDefinition().getDisplayName());
+        Map<String, String> headerVars = new HashMap<String, String>();
+        headerVars.put("event", event.getDefinition().getDisplayName());
+        p.sendMessage(plugin.getLang().msgFor(p, "messages.event.leaderboard-header", headerVars));
         if (top.isEmpty()) {
-            p.sendMessage(ChatColor.GRAY + "  \u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u043e\u0447\u043a\u043e\u0432.");
+            p.sendMessage(plugin.getLang().msgFor(p, "messages.event.no-scores-yet"));
         } else {
             int rank = 1;
             for (Map.Entry<UUID, Integer> entry : top) {
                 String name = Bukkit.getOfflinePlayer(entry.getKey()).getName();
                 if (name == null) name = entry.getKey().toString().substring(0, 8);
-                p.sendMessage(ChatColor.YELLOW + "  #" + rank + " " + ChatColor.WHITE + name + ChatColor.GRAY + " \u2014 " + ChatColor.GREEN + entry.getValue() + " \u043e\u0447\u043a\u043e\u0432");
+                Map<String, String> entryVars = new HashMap<String, String>();
+                entryVars.put("rank", String.valueOf(rank));
+                entryVars.put("player", name);
+                entryVars.put("score", String.valueOf(entry.getValue()));
+                p.sendMessage(plugin.getLang().msgFor(p, "messages.event.leaderboard-entry", entryVars));
                 rank++;
             }
         }

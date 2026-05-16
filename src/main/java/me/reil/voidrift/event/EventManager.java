@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,14 +74,17 @@ public final class EventManager {
                 if (overTime < 1000L) {
                     // First tick after expiry — announce ending with title
                     event.finish();
+                    Map<String, String> vars = new HashMap<String, String>();
+                    vars.put("event", event.getDefinition().getDisplayName());
+                    vars.put("id", event.getDefinition().getId());
                     for (Player p : Bukkit.getOnlinePlayers()) {
                         p.sendTitle(
-                                ChatColor.translateAlternateColorCodes('&', "&c\u2726 " + event.getDefinition().getDisplayName()),
-                                ChatColor.translateAlternateColorCodes('&', "&e\u0417\u0430\u0432\u0435\u0440\u0448\u0430\u0435\u0442\u0441\u044f \u0447\u0435\u0440\u0435\u0437 10 \u0441\u0435\u043a..."),
+                                plugin.getLang().color("&c✦ " + event.getDefinition().getDisplayName()),
+                                plugin.getLang().msg("messages.event.ending-subtitle"),
                                 10, 40, 10);
                         p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1.0f, 0.5f);
                     }
-                    Bukkit.broadcastMessage(ChatColor.GOLD + "\u2726 " + ChatColor.YELLOW + event.getDefinition().getDisplayName() + ChatColor.GOLD + " \u0437\u0430\u0432\u0435\u0440\u0448\u0430\u0435\u0442\u0441\u044f \u0447\u0435\u0440\u0435\u0437 10 \u0441\u0435\u043a\u0443\u043d\u0434...");
+                    Bukkit.broadcastMessage(plugin.getLang().msg("messages.event.ending", vars));
                     final String eid = entry.getKey();
                     Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
                         @Override
@@ -110,7 +114,10 @@ public final class EventManager {
                 long timeUntilStart = nextStart - now;
                 if (timeUntilStart <= 10000L && timeUntilStart > 9000L && activeEvents.size() < config.getMaxActiveEvents()) {
                     // Announce preview
-                    Bukkit.broadcastMessage(ChatColor.GOLD + "\u2726 " + ChatColor.YELLOW + def.getDisplayName() + ChatColor.GOLD + " \u043d\u0430\u0447\u043d\u0451\u0442\u0441\u044f \u0447\u0435\u0440\u0435\u0437 10 \u0441\u0435\u043a\u0443\u043d\u0434!");
+                    Map<String, String> soonVars = new HashMap<String, String>();
+                    soonVars.put("event", def.getDisplayName());
+                    soonVars.put("id", def.getId());
+                    Bukkit.broadcastMessage(plugin.getLang().msg("messages.event.starting-soon", soonVars));
                 }
                 if (now >= nextStart && activeEvents.size() < config.getMaxActiveEvents()) {
                     previewAndStart(def.getId());
@@ -170,7 +177,10 @@ public final class EventManager {
             nextStartTimes.put(eventId, System.currentTimeMillis() + (def.getIntervalSeconds() * 1000L));
         }
 
-        Bukkit.broadcastMessage(ChatColor.GOLD + "\u2726 " + ChatColor.YELLOW + event.getDefinition().getDisplayName() + ChatColor.GOLD + " \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u043e! \u041f\u043e\u0440\u0442\u0430\u043b\u044b \u0437\u0430\u043a\u0440\u044b\u0442\u044b.");
+        Map<String, String> endVars = new HashMap<String, String>();
+        endVars.put("event", event.getDefinition().getDisplayName());
+        endVars.put("id", event.getDefinition().getId());
+        Bukkit.broadcastMessage(plugin.getLang().msg("messages.event.ended-portals", endVars));
     }
 
     public boolean startEvent(String eventId) {
@@ -202,13 +212,16 @@ public final class EventManager {
         }
 
         // Broadcast start
-        Bukkit.broadcastMessage(ChatColor.GOLD + "\u2726 " + ChatColor.YELLOW + def.getDisplayName() + ChatColor.GOLD + " \u043d\u0430\u0447\u0430\u043b\u043e\u0441\u044c! " + ChatColor.GRAY + "/event join " + eventId);
+        Map<String, String> startVars = new HashMap<String, String>();
+        startVars.put("event", def.getDisplayName());
+        startVars.put("id", eventId);
+        Bukkit.broadcastMessage(plugin.getLang().msg("messages.event.started", startVars));
 
         // Title to all players
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.sendTitle(
-                    ChatColor.translateAlternateColorCodes('&', "&d\u2726 " + def.getDisplayName()),
-                    ChatColor.translateAlternateColorCodes('&', "&e\u041f\u043e\u0440\u0442\u0430\u043b \u043e\u0442\u043a\u0440\u044b\u0442!"),
+                    plugin.getLang().color("&d✦ " + def.getDisplayName()),
+                    plugin.getLang().msg("messages.event.portal-open-subtitle"),
                     10, 40, 10);
             p.playSound(p.getLocation(), Sound.BLOCK_PORTAL_TRIGGER, 0.7f, 1.5f);
         }
@@ -227,8 +240,8 @@ public final class EventManager {
 
         // Get preview settings from first ENTRY portal
         int previewSeconds = 10;
-        String previewTitle = "&d\u2726 \u0421\u043e\u0431\u044b\u0442\u0438\u0435 \u043d\u0430\u0447\u0438\u043d\u0430\u0435\u0442\u0441\u044f";
-        String previewSubtitle = "&e\u0427\u0435\u0440\u0435\u0437 {seconds} \u0441\u0435\u043a...";
+        String previewTitle = "&d✦ Событие начинается";
+        String previewSubtitle = "&eЧерез {seconds} сек...";
         Sound previewSound = Sound.BLOCK_NOTE_BLOCK_PLING;
         float previewVolume = 1.0f;
         float previewPitch = 1.0f;
@@ -311,11 +324,14 @@ public final class EventManager {
             nextStartTimes.put(eventId, System.currentTimeMillis() + (def.getIntervalSeconds() * 1000L));
         }
 
-        Bukkit.broadcastMessage(ChatColor.GOLD + "\u2726 " + ChatColor.YELLOW + event.getDefinition().getDisplayName() + ChatColor.GOLD + " \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u043e!");
+        Map<String, String> stopVars = new HashMap<String, String>();
+        stopVars.put("event", event.getDefinition().getDisplayName());
+        stopVars.put("id", eventId);
+        Bukkit.broadcastMessage(plugin.getLang().msg("messages.event.ended", stopVars));
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.sendTitle(
-                    ChatColor.translateAlternateColorCodes('&', "&6\u2726 " + event.getDefinition().getDisplayName()),
-                    ChatColor.translateAlternateColorCodes('&', "&a\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u043e!"),
+                    plugin.getLang().color("&6✦ " + event.getDefinition().getDisplayName()),
+                    plugin.getLang().msg("messages.event.completed-subtitle"),
                     10, 40, 10);
         }
         return true;
@@ -329,11 +345,14 @@ public final class EventManager {
         if (event == null) return;
 
         // Announce
-        Bukkit.broadcastMessage(ChatColor.GOLD + "\u2726 " + ChatColor.YELLOW + event.getDefinition().getDisplayName() + ChatColor.GOLD + " \u0437\u0430\u0432\u0435\u0440\u0448\u0430\u0435\u0442\u0441\u044f \u0447\u0435\u0440\u0435\u0437 10 \u0441\u0435\u043a\u0443\u043d\u0434...");
+        Map<String, String> psVars = new HashMap<String, String>();
+        psVars.put("event", event.getDefinition().getDisplayName());
+        psVars.put("id", eventId);
+        Bukkit.broadcastMessage(plugin.getLang().msg("messages.event.ending", psVars));
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.sendTitle(
-                    ChatColor.translateAlternateColorCodes('&', "&c\u2726 " + event.getDefinition().getDisplayName()),
-                    ChatColor.translateAlternateColorCodes('&', "&e\u0417\u0430\u0432\u0435\u0440\u0448\u0430\u0435\u0442\u0441\u044f \u0447\u0435\u0440\u0435\u0437 10 \u0441\u0435\u043a..."),
+                    plugin.getLang().color("&c✦ " + event.getDefinition().getDisplayName()),
+                    plugin.getLang().msg("messages.event.ending-subtitle"),
                     10, 40, 10);
             p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1.0f, 0.5f);
         }

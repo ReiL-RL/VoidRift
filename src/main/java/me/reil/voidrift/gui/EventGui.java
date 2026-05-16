@@ -16,7 +16,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * GUI menu showing all event definitions.
@@ -25,11 +27,12 @@ import java.util.List;
  */
 public final class EventGui implements Listener {
 
-    private static final String GUI_TITLE = ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "\u2726 События VoidRift";
     private final VoidRiftPlugin plugin;
+    private String guiTitle;
 
     public EventGui(VoidRiftPlugin plugin) {
         this.plugin = plugin;
+        this.guiTitle = plugin.getLang().msg("messages.gui.title");
     }
 
     public void open(Player player) {
@@ -37,7 +40,7 @@ public final class EventGui implements Listener {
         int size = Math.max(9, ((defs.size() / 9) + 1) * 9);
         if (size > 54) size = 54;
 
-        Inventory inv = Bukkit.createInventory(null, size, GUI_TITLE);
+        Inventory inv = Bukkit.createInventory(null, size, guiTitle);
 
         int slot = 0;
         for (EventDefinition def : defs) {
@@ -54,14 +57,18 @@ public final class EventGui implements Listener {
                 lore.add(ChatColor.GRAY + def.getDescription());
                 lore.add("");
                 if (isActive) {
-                    lore.add(ChatColor.GREEN + "Статус: " + ChatColor.WHITE + "Активно");
-                    lore.add(ChatColor.YELLOW + "Игроков: " + ChatColor.WHITE + active.getParticipants().size() + "/" + def.getMaxPlayers());
-                    lore.add(ChatColor.YELLOW + "Осталось: " + ChatColor.WHITE + formatTime(active.getRemainingSeconds()));
+                    lore.add(plugin.getLang().msg("messages.gui.status-active"));
+                    Map<String, String> pv = new HashMap<String, String>();
+                    pv.put("count", active.getParticipants().size() + "/" + def.getMaxPlayers());
+                    lore.add(plugin.getLang().msg("messages.gui.players", pv));
+                    Map<String, String> tv = new HashMap<String, String>();
+                    tv.put("time", formatTime(active.getRemainingSeconds()));
+                    lore.add(plugin.getLang().msg("messages.gui.time-remaining", tv));
                 } else {
-                    lore.add(ChatColor.RED + "Статус: " + ChatColor.GRAY + "Неактивно");
+                    lore.add(plugin.getLang().msg("messages.gui.status-inactive"));
                 }
                 lore.add("");
-                lore.add(ChatColor.DARK_GRAY + "Вход через портал");
+                lore.add(plugin.getLang().msg("messages.gui.enter-via-portal"));
                 meta.setLore(lore);
                 item.setItemMeta(meta);
             }
@@ -74,7 +81,7 @@ public final class EventGui implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getView().getTitle().equals(GUI_TITLE)) {
+        if (event.getView().getTitle().equals(guiTitle)) {
             event.setCancelled(true);
         }
     }

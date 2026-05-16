@@ -65,14 +65,14 @@ public final class BossBarDisplay {
             BossBar bar = bossBars.get(eventId);
             if (bar == null) {
                 String title = ChatColor.translateAlternateColorCodes('&',
-                        "&d\u2726 " + event.getDefinition().getDisplayName() + " &7| " + formatTime(event.getRemainingSeconds()));
+                        "&d✦ " + event.getDefinition().getDisplayName() + " &7| " + formatTime(event.getRemainingSeconds()));
                 bar = Bukkit.createBossBar(title, BarColor.PURPLE, BarStyle.SOLID);
                 bossBars.put(eventId, bar);
             }
 
             // Update title and progress
             String title = ChatColor.translateAlternateColorCodes('&',
-                    "&d\u2726 " + event.getDefinition().getDisplayName() + " &7| " + formatTime(event.getRemainingSeconds()));
+                    "&d✦ " + event.getDefinition().getDisplayName() + " &7| " + formatTime(event.getRemainingSeconds()));
             bar.setTitle(title);
 
             double totalDuration = event.getDefinition().getDurationSeconds();

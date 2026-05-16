@@ -15,28 +15,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-/**
- * /riftadmin (alias: /evadmin)
- *
- * Simplified portal commands:
- *   /riftadmin portal entry <event>                — set static entry portal at your pos
- *   /riftadmin portal exit <event>                 — set exit portal at your pos
- *   /riftadmin portal dynamic <event>              — set dynamic entry (dest = your pos)
- *   /riftadmin portal addpos <event>               — add dynamic spawn position
- *   /riftadmin portal next <event> <id>            — set intermediate entry at your pos
- *   /riftadmin portal nextdest <event> <id>        — set intermediate destination at your pos
- *   /riftadmin portal dest <event>                 — set where exit returns players
- *
- * Event commands:
- *   /riftadmin start <event>       — start with countdown
- *   /riftadmin startnow <event>    — start instantly
- *   /riftadmin stop <event>        — stop with countdown
- *   /riftadmin stopnow <event>     — stop instantly
- *   /riftadmin info [event]        — info
- *   /riftadmin reload              — reload configs
- */
 public final class EventAdminCommand implements CommandExecutor, TabCompleter {
 
     private final VoidRiftPlugin plugin;
@@ -48,7 +30,7 @@ public final class EventAdminCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!sender.hasPermission("voidrift.admin")) {
-            sender.sendMessage(ChatColor.RED + "\u041d\u0435\u0442 \u043f\u0440\u0430\u0432.");
+            sender.sendMessage(plugin.getLang().msg("messages.admin.no-permission"));
             return true;
         }
 
@@ -57,48 +39,48 @@ public final class EventAdminCommand implements CommandExecutor, TabCompleter {
         String sub = args[0].toLowerCase();
         switch (sub) {
             case "start":
-                if (args.length < 2) { sender.sendMessage(ChatColor.RED + "/riftadmin start <event>"); return true; }
+                if (args.length < 2) { sender.sendMessage(plugin.getLang().msg("messages.admin.usage-start")); return true; }
                 plugin.getEventManager().previewAndStart(args[1]);
-                sender.sendMessage(ChatColor.GREEN + "\u0417\u0430\u043f\u0443\u0441\u043a \u0441 \u043e\u0442\u0441\u0447\u0451\u0442\u043e\u043c...");
+                sender.sendMessage(plugin.getLang().msg("messages.admin.start-countdown"));
                 break;
             case "startnow":
-                if (args.length < 2) { sender.sendMessage(ChatColor.RED + "/riftadmin startnow <event>"); return true; }
+                if (args.length < 2) { sender.sendMessage(plugin.getLang().msg("messages.admin.usage-startnow")); return true; }
                 boolean ok = plugin.getEventManager().startEvent(args[1]);
-                sender.sendMessage(ok ? ChatColor.GREEN + "\u0417\u0430\u043f\u0443\u0449\u0435\u043d\u043e." : ChatColor.RED + "\u041e\u0448\u0438\u0431\u043a\u0430.");
+                sender.sendMessage(ok ? plugin.getLang().msg("messages.admin.started") : plugin.getLang().msg("messages.admin.error"));
                 break;
             case "stop":
-                if (args.length < 2) { sender.sendMessage(ChatColor.RED + "/riftadmin stop <event>"); return true; }
+                if (args.length < 2) { sender.sendMessage(plugin.getLang().msg("messages.admin.usage-stop")); return true; }
                 plugin.getEventManager().previewAndStop(args[1]);
-                sender.sendMessage(ChatColor.GREEN + "\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0447\u0435\u0440\u0435\u0437 10\u0441...");
+                sender.sendMessage(plugin.getLang().msg("messages.admin.stop-countdown"));
                 break;
             case "stopnow":
-                if (args.length < 2) { sender.sendMessage(ChatColor.RED + "/riftadmin stopnow <event>"); return true; }
+                if (args.length < 2) { sender.sendMessage(plugin.getLang().msg("messages.admin.usage-stopnow")); return true; }
                 boolean stopped = plugin.getEventManager().stopEvent(args[1]);
-                sender.sendMessage(stopped ? ChatColor.GREEN + "\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043e." : ChatColor.RED + "\u041d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e.");
+                sender.sendMessage(stopped ? plugin.getLang().msg("messages.admin.stopped") : plugin.getLang().msg("messages.admin.not-found"));
                 break;
             case "reload":
                 plugin.getEventsConfig().load();
                 plugin.getZoneManager().reloadZones();
                 plugin.getPortalManager().reloadPortals();
                 plugin.getEventManager().reloadEvents();
-                sender.sendMessage(ChatColor.GREEN + "\u041f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043d\u043e.");
+                sender.sendMessage(plugin.getLang().msg("messages.admin.reloaded"));
                 break;
             case "portal":
                 handlePortal(sender, args);
                 break;
             case "createevent":
-                if (!(sender instanceof Player)) { sender.sendMessage(ChatColor.RED + "\u0422\u043e\u043b\u044c\u043a\u043e \u0438\u0433\u0440\u043e\u043a\u0438."); break; }
-                if (args.length < 2) { sender.sendMessage(ChatColor.RED + "/riftadmin createevent <id>"); break; }
+                if (!(sender instanceof Player)) { sender.sendMessage(plugin.getLang().msg("messages.admin.players-only")); break; }
+                if (args.length < 2) { sender.sendMessage(plugin.getLang().msg("messages.admin.usage-createevent")); break; }
                 plugin.getEventWizard().start((Player) sender, args[1]);
                 break;
             case "setup":
-                if (!(sender instanceof Player)) { sender.sendMessage(ChatColor.RED + "\u0422\u043e\u043b\u044c\u043a\u043e \u0438\u0433\u0440\u043e\u043a\u0438."); break; }
-                if (args.length < 2) { sender.sendMessage(ChatColor.RED + "/riftadmin setup <event>"); break; }
+                if (!(sender instanceof Player)) { sender.sendMessage(plugin.getLang().msg("messages.admin.players-only")); break; }
+                if (args.length < 2) { sender.sendMessage(plugin.getLang().msg("messages.admin.usage-setup")); break; }
                 plugin.getSetupWizard().start((Player) sender, args[1]);
                 break;
             case "setupzone":
-                if (!(sender instanceof Player)) { sender.sendMessage(ChatColor.RED + "\u0422\u043e\u043b\u044c\u043a\u043e \u0438\u0433\u0440\u043e\u043a\u0438."); break; }
-                if (args.length < 2) { sender.sendMessage(ChatColor.RED + "/riftadmin setupzone <zone-id>"); break; }
+                if (!(sender instanceof Player)) { sender.sendMessage(plugin.getLang().msg("messages.admin.players-only")); break; }
+                if (args.length < 2) { sender.sendMessage(plugin.getLang().msg("messages.admin.usage-setupzone")); break; }
                 plugin.getZoneWizard().start((Player) sender, args[1]);
                 break;
             case "info":
@@ -112,7 +94,7 @@ public final class EventAdminCommand implements CommandExecutor, TabCompleter {
     }
 
     private void handlePortal(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player)) { sender.sendMessage(ChatColor.RED + "\u0422\u043e\u043b\u044c\u043a\u043e \u0438\u0433\u0440\u043e\u043a\u0438."); return; }
+        if (!(sender instanceof Player)) { sender.sendMessage(plugin.getLang().msg("messages.admin.players-only")); return; }
         Player p = (Player) sender;
 
         if (args.length < 3) { sendPortalHelp(p); return; }
@@ -123,61 +105,66 @@ public final class EventAdminCommand implements CommandExecutor, TabCompleter {
 
         switch (action) {
             case "entry":
-                // Set static entry portal at player pos, dest = player pos (will be overridden by dest command)
                 plugin.getPortalManager().createPortal(eventId, "entry", PortalType.ENTRY);
                 plugin.getPortalManager().setPortalLocation(eventId, "entry", loc);
-                p.sendMessage(ChatColor.GREEN + "\u2714 \u0412\u0445\u043e\u0434 \u0432 \u0435\u0432\u0435\u043d\u0442 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d. \u0422\u0435\u043f\u0435\u0440\u044c \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438 \u043d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435: /riftadmin portal dest " + eventId);
+                Map<String, String> entryVars = new HashMap<String, String>();
+                entryVars.put("event", eventId);
+                p.sendMessage(plugin.getLang().msg("messages.admin-portal.entry-set", entryVars));
                 break;
 
             case "exit":
-                // Set exit portal at player pos
                 plugin.getPortalManager().createPortal(eventId, "exit", PortalType.EXIT);
                 plugin.getPortalManager().setPortalLocation(eventId, "exit", loc);
-                p.sendMessage(ChatColor.GREEN + "\u2714 \u0412\u044b\u0445\u043e\u0434 \u0438\u0437 \u0435\u0432\u0435\u043d\u0442\u0430 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d.");
+                p.sendMessage(plugin.getLang().msg("messages.admin-portal.exit-set"));
                 break;
 
             case "dynamic":
-                // Set dynamic entry, destination = player pos (where players teleport TO)
                 plugin.getPortalManager().createPortal(eventId, "entry", PortalType.DYNAMIC);
                 plugin.getPortalManager().setPortalDestination(eventId, "entry", loc);
-                p.sendMessage(ChatColor.GREEN + "\u2714 \u0414\u0438\u043d\u0430\u043c\u0438\u0447\u0435\u0441\u043a\u0438\u0439 \u0432\u0445\u043e\u0434 \u0441\u043e\u0437\u0434\u0430\u043d. \u041d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 = \u0442\u0432\u043e\u044f \u043f\u043e\u0437\u0438\u0446\u0438\u044f.");
-                p.sendMessage(ChatColor.YELLOW + "\u0414\u043e\u0431\u0430\u0432\u044c \u0442\u043e\u0447\u043a\u0438 \u043f\u043e\u044f\u0432\u043b\u0435\u043d\u0438\u044f: /riftadmin portal addpos " + eventId);
+                p.sendMessage(plugin.getLang().msg("messages.admin-portal.dynamic-created"));
+                Map<String, String> dynVars = new HashMap<String, String>();
+                dynVars.put("event", eventId);
+                p.sendMessage(plugin.getLang().msg("messages.admin-portal.dynamic-hint", dynVars));
                 break;
 
             case "addpos":
-                // Add dynamic position for entry portal
                 plugin.getPortalManager().addDynamicLocation(eventId, "entry", loc);
-                p.sendMessage(ChatColor.GREEN + "\u2714 \u0422\u043e\u0447\u043a\u0430 \u043f\u043e\u044f\u0432\u043b\u0435\u043d\u0438\u044f \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u0430 (" + (int)loc.getX() + ", " + (int)loc.getY() + ", " + (int)loc.getZ() + ")");
+                Map<String, String> posVars = new HashMap<String, String>();
+                posVars.put("x", String.valueOf((int) loc.getX()));
+                posVars.put("y", String.valueOf((int) loc.getY()));
+                posVars.put("z", String.valueOf((int) loc.getZ()));
+                p.sendMessage(plugin.getLang().msg("messages.admin-portal.addpos-done", posVars));
                 break;
 
             case "dest":
-                // Set destination for entry portal (where players teleport to = event location)
                 plugin.getPortalManager().setPortalDestination(eventId, "entry", loc);
-                p.sendMessage(ChatColor.GREEN + "\u2714 \u041d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 \u0432\u0445\u043e\u0434\u0430 = \u0442\u0432\u043e\u044f \u043f\u043e\u0437\u0438\u0446\u0438\u044f (\u0435\u0432\u0435\u043d\u0442-\u043b\u043e\u043a\u0430\u0446\u0438\u044f).");
+                p.sendMessage(plugin.getLang().msg("messages.admin-portal.dest-set"));
                 break;
 
             case "return":
-                // Set where exit portal returns players (override default)
                 plugin.getPortalManager().setPortalDestination(eventId, "exit", loc);
-                p.sendMessage(ChatColor.GREEN + "\u2714 \u0422\u043e\u0447\u043a\u0430 \u0432\u043e\u0437\u0432\u0440\u0430\u0442\u0430 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430.");
+                p.sendMessage(plugin.getLang().msg("messages.admin-portal.return-set"));
                 break;
 
             case "next":
-                // Intermediate portal entry point
-                if (args.length < 4) { p.sendMessage(ChatColor.RED + "/riftadmin portal next <event> <id>"); return; }
+                if (args.length < 4) { p.sendMessage(plugin.getLang().msg("messages.admin-portal.usage-next")); return; }
                 String nextId = "next_" + args[3];
                 plugin.getPortalManager().createPortal(eventId, nextId, PortalType.INTERMEDIATE);
                 plugin.getPortalManager().setPortalLocation(eventId, nextId, loc);
-                p.sendMessage(ChatColor.GREEN + "\u2714 \u041f\u0440\u043e\u043c\u0435\u0436\u0443\u0442\u043e\u0447\u043d\u044b\u0439 \u043f\u043e\u0440\u0442\u0430\u043b " + args[3] + " \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d.");
-                p.sendMessage(ChatColor.YELLOW + "\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u0438 \u043d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435: /riftadmin portal nextdest " + eventId + " " + args[3]);
+                Map<String, String> nextVars = new HashMap<String, String>();
+                nextVars.put("id", args[3]);
+                nextVars.put("event", eventId);
+                p.sendMessage(plugin.getLang().msg("messages.admin-portal.next-set", nextVars));
+                p.sendMessage(plugin.getLang().msg("messages.admin-portal.next-hint", nextVars));
                 break;
 
             case "nextdest":
-                // Intermediate portal destination
-                if (args.length < 4) { p.sendMessage(ChatColor.RED + "/riftadmin portal nextdest <event> <id>"); return; }
+                if (args.length < 4) { p.sendMessage(plugin.getLang().msg("messages.admin-portal.usage-nextdest")); return; }
                 String nextDestId = "next_" + args[3];
                 plugin.getPortalManager().setPortalDestination(eventId, nextDestId, loc);
-                p.sendMessage(ChatColor.GREEN + "\u2714 \u041d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 " + args[3] + " \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043e.");
+                Map<String, String> ndVars = new HashMap<String, String>();
+                ndVars.put("id", args[3]);
+                p.sendMessage(plugin.getLang().msg("messages.admin-portal.nextdest-set", ndVars));
                 break;
 
             default:
@@ -188,17 +175,17 @@ public final class EventAdminCommand implements CommandExecutor, TabCompleter {
 
     private void handleInfo(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(ChatColor.GOLD + "\u0421\u043e\u0431\u044b\u0442\u0438\u044f:");
+            sender.sendMessage(plugin.getLang().msg("messages.admin.info-events-header"));
             for (me.reil.voidrift.event.EventDefinition def : plugin.getEventManager().getDefinitions()) {
                 boolean active = plugin.getEventManager().getActiveEvent(def.getId()) != null;
-                sender.sendMessage((active ? ChatColor.GREEN + "\u25CF " : ChatColor.GRAY + "\u25CB ") + ChatColor.YELLOW + def.getId() + ChatColor.GRAY + " - " + def.getDisplayName());
+                sender.sendMessage((active ? ChatColor.GREEN + "● " : ChatColor.GRAY + "○ ") + ChatColor.YELLOW + def.getId() + ChatColor.GRAY + " - " + def.getDisplayName());
             }
-            sender.sendMessage(ChatColor.GRAY + "\u041f\u043e\u0440\u0442\u0430\u043b\u044b:");
+            sender.sendMessage(plugin.getLang().msg("messages.admin.info-portals-header"));
             for (String eventId : plugin.getPortalManager().getAllEventIds()) {
                 Collection<PortalDefinition> portals = plugin.getPortalManager().getPortals(eventId);
                 for (PortalDefinition portal : portals) {
                     Location loc = portal.getActiveLocation();
-                    String locStr = loc != null ? (int)loc.getX() + "," + (int)loc.getY() + "," + (int)loc.getZ() : "\u043d\u0435 \u0443\u0441\u0442.";
+                    String locStr = loc != null ? (int)loc.getX() + "," + (int)loc.getY() + "," + (int)loc.getZ() : plugin.getLang().msg("messages.admin.info-loc-not-set");
                     sender.sendMessage(ChatColor.GRAY + "  " + eventId + "." + portal.getId() + " [" + portal.getType().name() + "] @ " + locStr);
                 }
             }
@@ -207,47 +194,62 @@ public final class EventAdminCommand implements CommandExecutor, TabCompleter {
         String eventId = args[1];
         me.reil.voidrift.event.ActiveEvent active = plugin.getEventManager().getActiveEvent(eventId);
         me.reil.voidrift.event.EventDefinition def = plugin.getEventManager().getDefinition(eventId);
-        if (def == null) { sender.sendMessage(ChatColor.RED + "\u041d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e: " + eventId); return; }
-        sender.sendMessage(ChatColor.GOLD + "=== " + def.getDisplayName() + " ===");
-        sender.sendMessage(ChatColor.GRAY + "ID: " + def.getId() + ", \u0422\u0438\u043f: " + def.getType().name());
-        sender.sendMessage(ChatColor.GRAY + "\u0414\u043b\u0438\u0442.: " + def.getDurationSeconds() + "\u0441, \u0418\u043d\u0442\u0435\u0440\u0432\u0430\u043b: " + def.getIntervalSeconds() + "\u0441");
-        if (active != null) {
-            sender.sendMessage(ChatColor.GREEN + "\u0410\u043a\u0442\u0438\u0432\u0435\u043d! \u041e\u0441\u0442\u0430\u043b\u043e\u0441\u044c: " + active.getRemainingSeconds() + "\u0441, \u0438\u0433\u0440\u043e\u043a\u043e\u0432: " + active.getParticipants().size());
+        if (def == null) {
+            Map<String, String> vars = new HashMap<String, String>();
+            vars.put("id", eventId);
+            sender.sendMessage(plugin.getLang().msg("messages.admin.not-found-id", vars));
+            return;
         }
+        Map<String, String> v = new HashMap<String, String>();
+        v.put("name", def.getDisplayName());
+        v.put("id", def.getId());
+        v.put("type", def.getType().name());
+        v.put("duration", String.valueOf(def.getDurationSeconds()));
+        v.put("interval", String.valueOf(def.getIntervalSeconds()));
+        sender.sendMessage(plugin.getLang().msg("messages.admin.info-header", v));
+        sender.sendMessage(plugin.getLang().msg("messages.admin.info-id-type", v));
+        sender.sendMessage(plugin.getLang().msg("messages.admin.info-duration-interval", v));
+        if (active != null) {
+            Map<String, String> av = new HashMap<String, String>();
+            av.put("remaining", String.valueOf(active.getRemainingSeconds()));
+            av.put("players", String.valueOf(active.getParticipants().size()));
+            sender.sendMessage(plugin.getLang().msg("messages.admin.info-active", av));
+        }
+        String noStr = plugin.getLang().msg("messages.admin.info-no");
         Collection<PortalDefinition> portals = plugin.getPortalManager().getPortals(eventId);
         for (PortalDefinition portal : portals) {
             Location loc = portal.getActiveLocation();
             Location dest = portal.getDestination();
-            String locStr = loc != null ? (int)loc.getX() + "," + (int)loc.getY() + "," + (int)loc.getZ() : "\u043d\u0435\u0442";
-            String destStr = dest != null ? (int)dest.getX() + "," + (int)dest.getY() + "," + (int)dest.getZ() : "\u043d\u0435\u0442";
+            String locStr = loc != null ? (int)loc.getX() + "," + (int)loc.getY() + "," + (int)loc.getZ() : noStr;
+            String destStr = dest != null ? (int)dest.getX() + "," + (int)dest.getY() + "," + (int)dest.getZ() : noStr;
             sender.sendMessage(ChatColor.GRAY + "  " + portal.getId() + " [" + portal.getType().name() + "] pos=" + locStr + " dest=" + destStr);
         }
     }
 
     private void sendPortalHelp(Player p) {
-        p.sendMessage(ChatColor.GOLD + "\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430 \u043f\u043e\u0440\u0442\u0430\u043b\u043e\u0432:");
-        p.sendMessage(ChatColor.YELLOW + "  /riftadmin portal entry <event>" + ChatColor.GRAY + " \u2014 \u0441\u0442\u0430\u0442\u0438\u0447\u043d\u044b\u0439 \u0432\u0445\u043e\u0434");
-        p.sendMessage(ChatColor.YELLOW + "  /riftadmin portal dynamic <event>" + ChatColor.GRAY + " \u2014 \u0434\u0438\u043d\u0430\u043c\u0438\u0447\u0435\u0441\u043a\u0438\u0439 \u0432\u0445\u043e\u0434");
-        p.sendMessage(ChatColor.YELLOW + "  /riftadmin portal addpos <event>" + ChatColor.GRAY + " \u2014 \u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0442\u043e\u0447\u043a\u0443 \u043f\u043e\u044f\u0432\u043b\u0435\u043d\u0438\u044f");
-        p.sendMessage(ChatColor.YELLOW + "  /riftadmin portal dest <event>" + ChatColor.GRAY + " \u2014 \u043a\u0443\u0434\u0430 \u0442\u0435\u043b\u0435\u043f\u043e\u0440\u0442\u0438\u0440\u0443\u0435\u0442 \u0432\u0445\u043e\u0434");
-        p.sendMessage(ChatColor.YELLOW + "  /riftadmin portal exit <event>" + ChatColor.GRAY + " \u2014 \u043f\u043e\u0440\u0442\u0430\u043b \u0432\u044b\u0445\u043e\u0434\u0430");
-        p.sendMessage(ChatColor.YELLOW + "  /riftadmin portal return <event>" + ChatColor.GRAY + " \u2014 \u0442\u043e\u0447\u043a\u0430 \u0432\u043e\u0437\u0432\u0440\u0430\u0442\u0430");
-        p.sendMessage(ChatColor.YELLOW + "  /riftadmin portal next <event> <id>" + ChatColor.GRAY + " \u2014 \u043f\u0440\u043e\u043c\u0435\u0436\u0443\u0442\u043e\u0447\u043d\u044b\u0439");
-        p.sendMessage(ChatColor.YELLOW + "  /riftadmin portal nextdest <event> <id>" + ChatColor.GRAY + " \u2014 \u043d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 \u043f\u0440\u043e\u043c.");
+        p.sendMessage(plugin.getLang().msg("messages.admin-portal.help-header"));
+        p.sendMessage(plugin.getLang().msg("messages.admin-portal.help-entry"));
+        p.sendMessage(plugin.getLang().msg("messages.admin-portal.help-dynamic"));
+        p.sendMessage(plugin.getLang().msg("messages.admin-portal.help-addpos"));
+        p.sendMessage(plugin.getLang().msg("messages.admin-portal.help-dest"));
+        p.sendMessage(plugin.getLang().msg("messages.admin-portal.help-exit"));
+        p.sendMessage(plugin.getLang().msg("messages.admin-portal.help-return"));
+        p.sendMessage(plugin.getLang().msg("messages.admin-portal.help-next"));
+        p.sendMessage(plugin.getLang().msg("messages.admin-portal.help-nextdest"));
     }
 
     private void sendHelp(CommandSender sender) {
-        sender.sendMessage(ChatColor.GOLD + "VoidRift Admin:");
-        sender.sendMessage(ChatColor.YELLOW + "  /riftadmin start <event>" + ChatColor.GRAY + " \u2014 \u0441 \u043e\u0442\u0441\u0447\u0451\u0442\u043e\u043c");
-        sender.sendMessage(ChatColor.YELLOW + "  /riftadmin startnow <event>" + ChatColor.GRAY + " \u2014 \u043c\u0433\u043d\u043e\u0432\u0435\u043d\u043d\u043e");
-        sender.sendMessage(ChatColor.YELLOW + "  /riftadmin stop <event>" + ChatColor.GRAY + " \u2014 \u0441 \u043e\u0442\u0441\u0447\u0451\u0442\u043e\u043c");
-        sender.sendMessage(ChatColor.YELLOW + "  /riftadmin stopnow <event>" + ChatColor.GRAY + " \u2014 \u043c\u0433\u043d\u043e\u0432\u0435\u043d\u043d\u043e");
-        sender.sendMessage(ChatColor.YELLOW + "  /riftadmin portal ..." + ChatColor.GRAY + " \u2014 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430 \u043f\u043e\u0440\u0442\u0430\u043b\u043e\u0432");
-        sender.sendMessage(ChatColor.YELLOW + "  /riftadmin setup <event>" + ChatColor.GRAY + " \u2014 \u0432\u0438\u0437\u0430\u0440\u0434 \u043f\u043e\u0440\u0442\u0430\u043b\u043e\u0432");
-        sender.sendMessage(ChatColor.YELLOW + "  /riftadmin setupzone <zone>" + ChatColor.GRAY + " \u2014 \u0432\u0438\u0437\u0430\u0440\u0434 \u0437\u043e\u043d\u044b");
-        sender.sendMessage(ChatColor.YELLOW + "  /riftadmin createevent <id>" + ChatColor.GRAY + " \u2014 \u0441\u043e\u0437\u0434\u0430\u0442\u044c \u0441\u043e\u0431\u044b\u0442\u0438\u0435");
-        sender.sendMessage(ChatColor.YELLOW + "  /riftadmin info [event]" + ChatColor.GRAY + " \u2014 \u0438\u043d\u0444\u043e");
-        sender.sendMessage(ChatColor.YELLOW + "  /riftadmin reload" + ChatColor.GRAY + " \u2014 \u043f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c");
+        sender.sendMessage(plugin.getLang().msg("messages.admin-help.header"));
+        sender.sendMessage(plugin.getLang().msg("messages.admin-help.start"));
+        sender.sendMessage(plugin.getLang().msg("messages.admin-help.startnow"));
+        sender.sendMessage(plugin.getLang().msg("messages.admin-help.stop"));
+        sender.sendMessage(plugin.getLang().msg("messages.admin-help.stopnow"));
+        sender.sendMessage(plugin.getLang().msg("messages.admin-help.portal"));
+        sender.sendMessage(plugin.getLang().msg("messages.admin-help.setup"));
+        sender.sendMessage(plugin.getLang().msg("messages.admin-help.setupzone"));
+        sender.sendMessage(plugin.getLang().msg("messages.admin-help.createevent"));
+        sender.sendMessage(plugin.getLang().msg("messages.admin-help.info"));
+        sender.sendMessage(plugin.getLang().msg("messages.admin-help.reload"));
     }
 
     @Override

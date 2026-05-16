@@ -126,7 +126,7 @@ public final class PortalManager {
                             player.sendMessage(vr.getLang().msg("portal.enter"));
                             if (vr.getSoundManager() != null) vr.getSoundManager().playSound(player, "portal-enter");
                         } catch (Exception e2) {
-                            player.sendMessage("\u00a7d\u2726 \u0422\u044b \u0432\u043e\u0448\u0451\u043b \u0432 \u0441\u043e\u0431\u044b\u0442\u0438\u0435!");
+                            player.sendMessage(((me.reil.voidrift.VoidRiftPlugin) plugin).getLang().msg("messages.portal.enter"));
                         }
                         // Auto-join event as participant
                         try {
@@ -150,7 +150,7 @@ public final class PortalManager {
                             player.sendMessage(vr.getLang().msg("portal.exit"));
                             if (vr.getSoundManager() != null) vr.getSoundManager().playSound(player, "portal-exit");
                         } catch (Exception e2) {
-                            player.sendMessage("\u00a7e\u2726 \u0422\u044b \u043f\u043e\u043a\u0438\u043d\u0443\u043b \u0441\u043e\u0431\u044b\u0442\u0438\u0435.");
+                            player.sendMessage(((me.reil.voidrift.VoidRiftPlugin) plugin).getLang().msg("messages.portal.exit"));
                         }
                         setCooldown(player.getUniqueId());
                         return true;
@@ -187,7 +187,12 @@ public final class PortalManager {
             if (returnLoc == null) returnLoc = player.getWorld().getSpawnLocation();
             playersInEvent.remove(playerId);
             player.teleport(returnLoc);
-            player.sendMessage("\u00a7e\u2726 \u0421\u043e\u0431\u044b\u0442\u0438\u0435 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u043e. \u0422\u044b \u0432\u043e\u0437\u0432\u0440\u0430\u0449\u0451\u043d.");
+            try {
+                me.reil.voidrift.VoidRiftPlugin vr = (me.reil.voidrift.VoidRiftPlugin) plugin;
+                player.sendMessage(vr.getLang().msg("messages.portal.event-ended-return"));
+            } catch (Exception e2) {
+                player.sendMessage(""); // fallback already handled above
+            }
         }
     }
 
