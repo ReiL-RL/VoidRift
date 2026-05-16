@@ -1,0 +1,102 @@
+# VoidRift - Основная конфигурация
+language: ru
+max-active-events: 3
+
+auto-start:
+  enabled: true
+
+portal:
+  preview-seconds: 10
+  particles:
+    entry: PORTAL
+    exit: REVERSE_PORTAL
+    intermediate: END_ROD
+    dynamic: DRAGON_BREATH
+
+# Звуковые эффекты
+sounds:
+  event-start:
+    sound: BLOCK_PORTAL_TRIGGER
+    volume: 0.7
+    pitch: 1.5
+  event-end:
+    sound: ENTITY_ENDER_DRAGON_DEATH
+    volume: 0.5
+    pitch: 1.0
+  wave-clear:
+    sound: ENTITY_PLAYER_LEVELUP
+    volume: 1.0
+    pitch: 1.5
+  boss-spawn:
+    sound: ENTITY_WITHER_SPAWN
+    volume: 1.0
+    pitch: 0.8
+  objective-complete:
+    sound: ENTITY_PLAYER_LEVELUP
+    volume: 1.0
+    pitch: 1.5
+  portal-enter:
+    sound: ENTITY_ENDERMAN_TELEPORT
+    volume: 1.0
+    pitch: 1.0
+  portal-exit:
+    sound: ENTITY_ENDERMAN_TELEPORT
+    volume: 1.0
+    pitch: 1.2
+
+# Модификаторы событий (случайные баффы/дебаффы)
+modifiers:
+  enabled: true
+  max-count: 2
+
+# Отображение прогресса
+display:
+  # ActionBar с инфой об ивенте (время, очки, цель)
+  actionbar: true
+  # Sidebar справа (скорборд с целями)
+  sidebar: true
+  # BossBar с прогрессом времени
+  bossbar: true
+
+# Награды
+rewards:
+  cooldown-seconds: 3600
+
+# Масштабирование сложности по количеству игроков
+scaling:
+  enabled: true
+  per-player-multiplier: 0.5
+
+# Лут-сундуки (появляются после волны)
+loot-chests:
+  random:
+    enabled: true
+    # Сколько рандомных сундуков спавнить при старте ивента
+    count: 3
+    # Партиклы над сундуком
+    particle: VILLAGER_HAPPY
+  boss:
+    enabled: true
+    # Режим выдачи лута босса:
+    #   CHEST      — сундук на месте смерти босса
+    #   DROP       — предметы падают на землю
+    #   KILLER     — в инвентарь убившему
+    #   TOP_DAMAGE — в инвентарь тому кто нанёс больше урона
+    mode: CHEST
+    particle: FLAME
+
+# Интеграции (включаются автоматически если плагин найден)
+integrations:
+  elitemobs:
+    enabled: true
+    fallback-vanilla: true
+  fmm:
+    enabled: true
+  skybound:
+    enabled: true
+  mythicmobs:
+    enabled: true
+  citizens:
+    enabled: true
+  sopitems:
+    enabled: true

@@ -1,0 +1,14 @@
+# VoidRift - Конфигурация порталов
+# Создавайте порталы через команды:
+#   /riftadmin portal create <event> <id> <ENTRY|EXIT|INTERMEDIATE|DYNAMIC>
+#   /riftadmin portal set <event> <id>          — позиция
+#   /riftadmin portal dest <event> <id>         — назначение
+#   /riftadmin portal adddynamic <event> <id>   — точка для DYNAMIC
+#
+# Типы:
+#   ENTRY       — статический вход в ивент
+#   EXIT        — выход из ивента (возвращает игрока)
+#   INTERMEDIATE — переход между зонами внутри ивента
+#   DYNAMIC     — появляется в случайном месте из списка
+
+portals: {}

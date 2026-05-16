@@ -1,0 +1,135 @@
+# VoidRift - Зоны событий
+#
+# mob-type: VANILLA или ELITEMOBS
+# model: (опционально) FMM модель для ванильных мобов или оверрайд для EM боссов
+#        Если mob-type=ELITEMOBS и модель указана в yml босса (customModel), то model тут не нужен.
+#        Если mob-type=VANILLA и model указан — FMM применит модель к ванильному мобу.
+
+zones:
+  rift_zone:
+    world: "world"
+    pos1:
+      x: 0
+      y: 60
+      z: 0
+    pos2:
+      x: 50
+      y: 100
+      z: 50
+    max-mobs: 15
+    spawn-points:
+      north:
+        x: 10
+        y: 64
+        z: 10
+      south:
+        x: 40
+        y: 64
+        z: 40
+      center:
+        x: 25
+        y: 64
+        z: 25
+    mob-pools:
+      - mob-id: ZOMBIE
+        mob-type: VANILLA
+        weight: 5
+        wave: 0
+      - mob-id: SKELETON
+        mob-type: VANILLA
+        weight: 3
+        wave: 0
+      - mob-id: CREEPER
+        mob-type: VANILLA
+        weight: 2
+        wave: 2
+      # EliteMobs босс — модель берётся из его yml (customModel: skybound_void_reaver)
+      - mob-id: skybound_void_reaver.yml
+        mob-type: ELITEMOBS
+        weight: 1
+        wave: 3
+    bonus-waves:
+      5:
+        - mob-id: rift_boss.yml
+          mob-type: ELITEMOBS
+          count: 1
+      10:
+        - mob-id: skybound_void_reaver.yml
+          mob-type: ELITEMOBS
+          count: 1
+
+  crystal_arena:
+    world: "world"
+    pos1:
+      x: 100
+      y: 60
+      z: 100
+    pos2:
+      x: 130
+      y: 90
+      z: 130
+    max-mobs: 1
+    spawn-points:
+      center:
+        x: 115
+        y: 64
+        z: 115
+    mob-pools:
+      # EliteMobs босс с FMM моделью (указана в custombosses yml)
+      - mob-id: skybound_crystal_overseer.yml
+        mob-type: ELITEMOBS
+        weight: 1
+        wave: 0
+
+  mining_zone:
+    world: "world"
+    pos1:
+      x: -50
+      y: 30
+      z: -50
+    pos2:
+      x: 0
+      y: 70
+      z: 0
+    max-mobs: 0
+    spawn-points: {}
+    mob-pools: []
+
+  # Тестовая зона с ванильными мобами + FMM модели
+  test_zone:
+    world: "world"
+    pos1:
+      x: 200
+      y: 60
+      z: 200
+    pos2:
+      x: 240
+      y: 100
+      z: 240
+    max-mobs: 10
+    spawn-points:
+      sp1:
+        x: 210
+        y: 64
+        z: 210
+      sp2:
+        x: 230
+        y: 64
+        z: 230
+    mob-pools:
+      # Ванильный зомби с кастомной FMM моделью
+      - mob-id: ZOMBIE
+        mob-type: VANILLA
+        model: skybound_void_reaver
+        weight: 3
+        wave: 0
+      # EM босс — модель из его конфига
+      - mob-id: skybound_bloom_colossus.yml
+        mob-type: ELITEMOBS
+        weight: 1
+        wave: 2
+      # Обычный скелет без модели
+      - mob-id: SKELETON
+        mob-type: VANILLA
+        weight: 4
+        wave: 0

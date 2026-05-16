@@ -1,0 +1,24 @@
+name: VoidRift
+version: ${project.version}
+main: me.reil.voidrift.VoidRiftPlugin
+api-version: 1.16
+author: Reil
+description: Event system - standalone or SkyBound addon. Zones, waves, portals, rewards.
+softdepend: [SkyBound, EliteMobs, FreeMinecraftModels, MythicMobs, Citizens, Vault, PlaceholderAPI, SopCustomBlocks, SopItemsCreator]
+depend: [SopLib]
+commands:
+  event:
+    description: Event management command
+    usage: /event [subcommand]
+    aliases: [ev, events, rift]
+  eventadmin:
+    description: Event admin command
+    usage: /eventadmin [subcommand]
+    aliases: [evadmin, riftadmin]
+permissions:
+  voidrift.admin:
+    description: Full admin access
+    default: op
+  voidrift.join:
+    description: Join events
+    default: true

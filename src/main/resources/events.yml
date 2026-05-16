@@ -1,0 +1,83 @@
+# VoidRift - Определения событий
+#
+# type: WAVE_SURVIVAL, BOSS_FIGHT, RESOURCE_RACE, CUSTOM
+# zone: ссылка на зону из zones.yml
+# rewards: деньги, XP острова (SkyBound), команды
+#
+# Интеграции (опциональные):
+#   EliteMobs — боссы спавнятся если плагин есть, иначе fallback на ванильных мобов
+#   FreeMinecraftModels — модели применяются если плагин есть, иначе обычный вид
+
+events:
+  rift_assault:
+    display-name: "&5✦ Штурм Разлома"
+    description: "Выживи против волн мобов из разлома!"
+    type: WAVE_SURVIVAL
+    zone: "rift_zone"
+    duration-seconds: 300
+    interval-seconds: 1800
+    min-players: 1
+    max-players: 10
+    scale-mobs-per-player: 2
+    rewards:
+      money: 5000.0
+      island-xp: 100
+      commands:
+        - "say {player} завершил Штурм Разлома! Очки: {score}"
+    loot-table:
+      - item: DIAMOND
+        amount: 1
+        chance: 0.1
+        display-name: "&b✦ Осколок Разлома"
+      - item: IRON_INGOT
+        amount: 5
+        chance: 0.5
+      - item: GOLD_INGOT
+        amount: 3
+        chance: 0.3
+
+  crystal_boss:
+    display-name: "&b✦ Кристальный Босс"
+    description: "Убей Кристального Смотрителя!"
+    type: BOSS_FIGHT
+    zone: "crystal_arena"
+    duration-seconds: 180
+    interval-seconds: 3600
+    min-players: 1
+    max-players: 5
+    scale-mobs-per-player: 2
+    rewards:
+      money: 10000.0
+      island-xp: 200
+      commands:
+        - "say {player} победил Кристального Босса!"
+
+  mining_race:
+    display-name: "&e✦ Гонка Шахтёров"
+    description: "Добудь больше всех ресурсов за время!"
+    type: RESOURCE_RACE
+    zone: "mining_zone"
+    duration-seconds: 120
+    interval-seconds: 2400
+    min-players: 2
+    max-players: 8
+    rewards:
+      money: 3000.0
+      island-xp: 50
+      commands: []
+
+  # Тестовый ивент для проверки интеграций
+  test_integration:
+    display-name: "&a✦ Тест Интеграций"
+    description: "Тестовый ивент: EM боссы + FMM модели"
+    type: WAVE_SURVIVAL
+    zone: "test_zone"
+    duration-seconds: 120
+    interval-seconds: 600
+    min-players: 1
+    max-players: 4
+    rewards:
+      money: 1000.0
+      island-xp: 25
+      commands:
+        - "say {player} прошёл тест интеграций!"

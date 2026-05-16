@@ -1,0 +1,39 @@
+# VoidRift - Сообщения (lang.yml)
+# Поддерживает цветовые коды &
+
+messages:
+  # Порталы
+  portal-enter: "&d✦ Ты вошёл в событие!"
+  portal-exit: "&e✦ Ты покинул событие."
+  portal-blocked-cmd: "&c✘ Эта команда заблокирована во время события. Используй портал выхода."
+
+  # Ивенты
+  event-started: "&6✦ {event} &6началось! /event join {id}"
+  event-ending: "&6✦ {event} &6завершается через 10 секунд..."
+  event-ended: "&6✦ {event} &6завершено!"
+  event-ended-portals: "&6✦ {event} &6завершено! Порталы закрыты."
+
+  # Цели
+  objective-complete: "&a&l✦ Цель выполнена!"
+  objective-subtitle: "&e{objective}"
+
+  # Награды
+  reward-title: "&6✦ &aНаграда за событие: &e{event}"
+  reward-money: "&6  +${amount}"
+  reward-score: "&7  Очки: {score}"
+  reward-cooldown: "&cНаграда за это событие будет доступна через {time}."
+
+  # Лидерборд
+  leaderboard-header: "&6✦ Топ-10: &e{event}"
+  leaderboard-entry: "&e#{rank} &f{player} &7- &a{score}"
+  leaderboard-empty: "&7Пока нет записей."
+
+  # Визарды
+  wizard-cancelled: "&cНастройка отменена."
+  zone-saved: "&a&l✦ Зона '{zone}' сохранена!"
+
+  # Общее
+  no-permission: "&cНет прав."
+  not-found: "&cНе найдено: {id}"
+  error: "&cОшибка."
+  reloaded: "&aПерезагружено."

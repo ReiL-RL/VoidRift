@@ -1,0 +1,12 @@
+target/
+*.class
+*.jar
+!releases/*.jar
+.idea/
+*.iml
+.settings/
+.classpath
+.project
+bin/
+out/
+dependency-reduced-pom.xml
