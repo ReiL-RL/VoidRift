@@ -376,6 +376,8 @@ public final class EventManager {
         if (plugin.getModifierManager() != null) {
             plugin.getModifierManager().applyToPlayer(player, event);
         }
+        // Fire FlexAchievements event
+        fireFlexEvent(player, "VOIDRIFT_EVENT_JOIN", eventId);
         return true;
     }
 
@@ -446,7 +448,29 @@ public final class EventManager {
             if (plugin.getStatsManager() != null) {
                 plugin.getStatsManager().addKill(playerId, eventId);
             }
+            // Fire FlexAchievements boss kill event
+            if (bossFile != null) {
+                Player player = Bukkit.getPlayer(playerId);
+                if (player != null) {
+                    fireFlexEvent(player, "VOIDRIFT_BOSS_KILL", eventId);
+                }
+            }
         }
+    }
+
+    /**
+     * Fire a FlexAchievements event via reflection (if FlexAchievements is present).
+     */
+    private void fireFlexEvent(Player player, String eventType, String eventId) {
+        try {
+            Class<?> pluginClass = Class.forName("ru.flexachievements.FlexAchievementsPlugin");
+            Object instance = pluginClass.getMethod("getInstance").invoke(null);
+            if (instance == null) return;
+            java.lang.reflect.Method processMethod = instance.getClass().getMethod("process", Player.class, String.class, java.util.Map.class);
+            java.util.Map<String, Object> context = new java.util.LinkedHashMap<String, Object>();
+            context.put("event_id", eventId);
+            processMethod.invoke(instance, player, eventType, context);
+        } catch (Exception ignored) {}
     }
 
     private void loadEvents() {

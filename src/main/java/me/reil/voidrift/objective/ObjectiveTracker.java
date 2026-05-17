@@ -300,6 +300,7 @@ public final class ObjectiveTracker {
             if (player != null && player.isOnline()) {
                 plugin.getRewardManager().giveRewards(player, event);
                 fireFlexAchievement(player, def);
+                fireFlexEvent(player, "VOIDRIFT_EVENT_COMPLETE", def.getId());
                 player.sendMessage(plugin.getLang().msg("objective.complete"));
                 player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f);
                 if (plugin.getSoundManager() != null) {
@@ -426,6 +427,18 @@ public final class ObjectiveTracker {
                 api.getClass().getMethod("fireCustomEvent", Player.class, String.class, Map.class)
                         .invoke(api, player, achievementId, context);
             }
+        } catch (Exception ignored) {}
+    }
+
+    private void fireFlexEvent(Player player, String eventType, String eventId) {
+        try {
+            Class<?> pluginClass = Class.forName("ru.flexachievements.FlexAchievementsPlugin");
+            Object instance = pluginClass.getMethod("getInstance").invoke(null);
+            if (instance == null) return;
+            java.lang.reflect.Method processMethod = instance.getClass().getMethod("process", Player.class, String.class, Map.class);
+            Map<String, Object> context = new LinkedHashMap<String, Object>();
+            context.put("event_id", eventId);
+            processMethod.invoke(instance, player, eventType, context);
         } catch (Exception ignored) {}
     }
 

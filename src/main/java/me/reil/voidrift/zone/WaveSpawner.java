@@ -98,6 +98,13 @@ public final class WaveSpawner {
         // Check wave completion (all mobs dead after spawn)
         if (alive == 0 && tickCounter > 30) {
             event.nextWave();
+            // Fire VOIDRIFT_WAVE_CLEAR for all participants
+            for (java.util.UUID pid : event.getParticipants()) {
+                org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(pid);
+                if (p != null) {
+                    fireFlexEvent(p, "VOIDRIFT_WAVE_CLEAR", event.getDefinition().getId());
+                }
+            }
             // Spawn bonus wave mobs if configured
             spawnBonusWave(event, zone);
         }
@@ -226,6 +233,18 @@ public final class WaveSpawner {
     private EntityType parseEntityType(String name) {
         try { return EntityType.valueOf(name.toUpperCase()); }
         catch (IllegalArgumentException e) { return null; }
+    }
+
+    private void fireFlexEvent(org.bukkit.entity.Player player, String eventType, String eventId) {
+        try {
+            Class<?> pluginClass = Class.forName("ru.flexachievements.FlexAchievementsPlugin");
+            Object instance = pluginClass.getMethod("getInstance").invoke(null);
+            if (instance == null) return;
+            java.lang.reflect.Method processMethod = instance.getClass().getMethod("process", org.bukkit.entity.Player.class, String.class, java.util.Map.class);
+            java.util.Map<String, Object> context = new java.util.LinkedHashMap<String, Object>();
+            context.put("event_id", eventId);
+            processMethod.invoke(instance, player, eventType, context);
+        } catch (Exception ignored) {}
     }
 }
 
