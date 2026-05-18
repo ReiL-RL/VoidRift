@@ -85,6 +85,12 @@ public final class RewardManager {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), resolved);
         }
 
+        // Track mission progress in SkyBound (allows "Complete X events" missions)
+        if (plugin.getSkyBoundHook().isAvailable()) {
+            plugin.getSkyBoundHook().trackMission(player, "CUSTOM", "EVENT_COMPLETE", 1);
+            plugin.getSkyBoundHook().trackMission(player, "CUSTOM", "EVENT_" + def.getId().toUpperCase(), 1);
+        }
+
         player.sendMessage(plugin.getLang().msg("reward.received", java.util.Collections.singletonMap("event_name", def.getDisplayName())));
         if (def.getRewardMoney() > 0) {
             java.util.Map<String, String> ph = new java.util.LinkedHashMap<String, String>();
