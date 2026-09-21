@@ -27,7 +27,8 @@ public final class PortalListener implements Listener {
     // Commands blocked inside event zone (without voidrift.bypass permission)
     private static final Set<String> BLOCKED_COMMANDS = new HashSet<String>(Arrays.asList(
             "spawn", "home", "tp", "tpa", "tpaccept", "back", "warp",
-            "is home", "is go", "island home", "sethome", "delhome"
+            "is home", "is go", "island home", "sethome", "delhome",
+            "event leave", "ev leave", "events leave", "rift leave"
     ));
 
     public PortalListener(VoidRiftPlugin plugin, PortalManager portalManager, EventManager eventManager) {

@@ -40,6 +40,7 @@ public final class PortalManager {
     private final Map<String, List<PortalDefinition>> eventPortals = new LinkedHashMap<String, List<PortalDefinition>>();
     private final Set<String> activeEventIds = new HashSet<String>();
     private final Map<UUID, Location> returnLocations = new LinkedHashMap<UUID, Location>();
+    private final Map<UUID, String> playerEventIds = new LinkedHashMap<UUID, String>();
     private final Set<UUID> playersInEvent = new HashSet<UUID>();
     private BukkitTask ambientTask;
 
@@ -113,17 +114,22 @@ public final class PortalManager {
                 switch (portal.getType()) {
                     case ENTRY:
                     case DYNAMIC:
+                        if (playersInEvent.contains(player.getUniqueId())) {
+                            String currentEvent = playerEventIds.get(player.getUniqueId());
+                            if (currentEvent != null && !currentEvent.equals(eventId)) continue;
+                        }
                         // Teleport INTO event + auto-join
                         Location dest = portal.getDestination();
                         if (dest == null || dest.getWorld() == null) continue;
                         returnLocations.put(player.getUniqueId(), player.getLocation().clone());
                         playersInEvent.add(player.getUniqueId());
+                        playerEventIds.put(player.getUniqueId(), eventId);
                         player.teleport(dest);
                         player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
                         // Use lang message
                         try {
                             me.reil.voidrift.VoidRiftPlugin vr = (me.reil.voidrift.VoidRiftPlugin) plugin;
-                            player.sendMessage(vr.getLang().msg("portal.enter"));
+                            player.sendMessage(vr.getLang().msg("messages.portal.enter"));
                             if (vr.getSoundManager() != null) vr.getSoundManager().playSound(player, "portal-enter");
                         } catch (Exception e2) {
                             player.sendMessage(((me.reil.voidrift.VoidRiftPlugin) plugin).getLang().msg("messages.portal.enter"));
@@ -132,6 +138,7 @@ public final class PortalManager {
                         try {
                             me.reil.voidrift.VoidRiftPlugin vr = (me.reil.voidrift.VoidRiftPlugin) plugin;
                             vr.getEventManager().joinEvent(player, eventId);
+                            vr.getObjectiveTracker().onPortalUse(eventId, player.getUniqueId(), portal.getId());
                         } catch (Exception ignored) {}
                         setCooldown(player.getUniqueId());
                         return true;
@@ -142,12 +149,18 @@ public final class PortalManager {
                         if (returnLoc == null) returnLoc = portal.getDestination();
                         if (returnLoc == null) returnLoc = player.getWorld().getSpawnLocation();
                         playersInEvent.remove(player.getUniqueId());
+                        playerEventIds.remove(player.getUniqueId());
+                        try {
+                            me.reil.voidrift.VoidRiftPlugin vr = (me.reil.voidrift.VoidRiftPlugin) plugin;
+                            vr.getEventManager().leaveEvent(player, eventId);
+                            vr.getObjectiveTracker().onPortalUse(eventId, player.getUniqueId(), portal.getId());
+                        } catch (Exception ignored) {}
                         player.teleport(returnLoc);
                         player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.2f);
                         // Use lang message
                         try {
                             me.reil.voidrift.VoidRiftPlugin vr = (me.reil.voidrift.VoidRiftPlugin) plugin;
-                            player.sendMessage(vr.getLang().msg("portal.exit"));
+                            player.sendMessage(vr.getLang().msg("messages.portal.exit"));
                             if (vr.getSoundManager() != null) vr.getSoundManager().playSound(player, "portal-exit");
                         } catch (Exception e2) {
                             player.sendMessage(((me.reil.voidrift.VoidRiftPlugin) plugin).getLang().msg("messages.portal.exit"));
@@ -160,6 +173,10 @@ public final class PortalManager {
                         Location intDest = portal.getDestination();
                         if (intDest == null || intDest.getWorld() == null) continue;
                         player.teleport(intDest);
+                        try {
+                            me.reil.voidrift.VoidRiftPlugin vr = (me.reil.voidrift.VoidRiftPlugin) plugin;
+                            vr.getObjectiveTracker().onPortalUse(eventId, player.getUniqueId(), portal.getId());
+                        } catch (Exception ignored) {}
                         player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 1.5f);
                         setCooldown(player.getUniqueId());
                         return true;
@@ -177,15 +194,19 @@ public final class PortalManager {
 
     public void returnAllPlayers(String eventId) {
         for (UUID playerId : new ArrayList<UUID>(playersInEvent)) {
+            String playerEventId = playerEventIds.get(playerId);
+            if (playerEventId != null && !playerEventId.equals(eventId)) continue;
             Player player = Bukkit.getPlayer(playerId);
             if (player == null || !player.isOnline()) {
                 playersInEvent.remove(playerId);
                 returnLocations.remove(playerId);
+                playerEventIds.remove(playerId);
                 continue;
             }
             Location returnLoc = returnLocations.remove(playerId);
             if (returnLoc == null) returnLoc = player.getWorld().getSpawnLocation();
             playersInEvent.remove(playerId);
+            playerEventIds.remove(playerId);
             player.teleport(returnLoc);
             try {
                 me.reil.voidrift.VoidRiftPlugin vr = (me.reil.voidrift.VoidRiftPlugin) plugin;
@@ -337,6 +358,7 @@ public final class PortalManager {
             }
         }
         playersInEvent.clear();
+        playerEventIds.clear();
         activeEventIds.clear();
     }
 

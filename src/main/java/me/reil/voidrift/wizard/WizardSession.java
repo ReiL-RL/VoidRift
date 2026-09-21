@@ -12,17 +12,21 @@ public final class WizardSession {
     private WizardStep step;
     private WizardStep previousStep;
     private PortalType entryType;
+    private final Location startLocation;
+    private Location entryLocation;
     private int dynamicCount;
     private int intermediateCount;
 
     /** Stores pairs: [locA, locB, locA, locB, ...] for intermediate portals */
     private final List<Location> intermediatePairs;
 
-    public WizardSession(String eventId, WizardStep step) {
+    public WizardSession(String eventId, WizardStep step, Location startLocation) {
         this.eventId = eventId;
         this.step = step;
         this.previousStep = null;
         this.entryType = PortalType.ENTRY;
+        this.startLocation = startLocation != null ? startLocation.clone() : null;
+        this.entryLocation = null;
         this.dynamicCount = 0;
         this.intermediateCount = 0;
         this.intermediatePairs = new ArrayList<Location>();
@@ -40,6 +44,9 @@ public final class WizardSession {
 
     public PortalType getEntryType() { return entryType; }
     public void setEntryType(PortalType entryType) { this.entryType = entryType; }
+    public Location getStartLocation() { return startLocation != null ? startLocation.clone() : null; }
+    public Location getEntryLocation() { return entryLocation != null ? entryLocation.clone() : null; }
+    public void setEntryLocation(Location entryLocation) { this.entryLocation = entryLocation != null ? entryLocation.clone() : null; }
 
     public int getDynamicCount() { return dynamicCount; }
     public void incrementDynamicCount() { this.dynamicCount++; }

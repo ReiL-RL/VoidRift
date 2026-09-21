@@ -6,6 +6,7 @@ public enum WizardStep {
     SET_DEST,
     ADD_DYNAMIC_POS,
     SET_EXIT,
+    SET_RETURN,
     ADD_INTERMEDIATE,
     DONE
 }

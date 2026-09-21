@@ -20,6 +20,9 @@ public enum EventType {
     /** Timed challenge (break blocks, etc). */
     TIMED_CHALLENGE,
 
+    /** Island War — destroy other islands' hearts. */
+    ISLAND_WAR,
+
     /** Custom (scripted by commands). */
     CUSTOM
 }

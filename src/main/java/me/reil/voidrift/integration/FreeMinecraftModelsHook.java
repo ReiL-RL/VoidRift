@@ -9,7 +9,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.lang.reflect.Method;
 
 /**
- * Optional FreeMinecraftModels integration.
+ * Required FreeMinecraftModels integration.
  * Applies custom models to entities via DynamicEntity.create(entityID, livingEntity).
  *
  * FMM 2.5 API:

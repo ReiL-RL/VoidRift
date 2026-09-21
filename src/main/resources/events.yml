@@ -81,3 +81,20 @@ events:
       island-xp: 25
       commands:
         - "say {player} прошёл тест интеграций!"
+
+  island_war:
+    display-name: "&5&l✦ Война островов"
+    description: "Уничтожь сердца чужих островов и забери их престиж!"
+    type: ISLAND_WAR
+    zone: ""
+    duration-seconds: 1800       # 30 минут
+    interval-seconds: 86400      # раз в день
+    min-players: 2
+    max-players: 200
+    schedule: INTERVAL
+    objectives: []               # цели рассчитываются авто (kills сердец)
+    complete-on: ANY
+    rewards:
+      money: 5000
+      island-xp: 500
+      commands: []

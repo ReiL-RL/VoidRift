@@ -39,9 +39,11 @@ import org.bukkit.scheduler.BukkitTask;
  * - Standalone: works independently, rewards via Vault/commands
  * - Addon: integrates with SkyBound Core for island XP, missions, bank rewards
  *
- * Optional integrations:
+ * Required integrations:
  * - EliteMobs: spawn EM bosses in event zones
  * - FreeMinecraftModels: custom mob models in zones
+ *
+ * Optional integrations:
  * - MythicMobs: spawn MM mobs in event zones
  * - Citizens: NPC support for event info
  */
@@ -75,6 +77,8 @@ public final class VoidRiftPlugin extends JavaPlugin {
     private SoundManager soundManager;
     private ModifierManager modifierManager;
     private StatsManager statsManager;
+    private me.reil.voidrift.islandwar.IslandWarManager islandWarManager;
+    private me.reil.voidrift.islandwar.IslandWarMenu islandWarMenu;
     private BukkitTask schedulerTask;
 
     @Override
@@ -103,6 +107,12 @@ public final class VoidRiftPlugin extends JavaPlugin {
         this.skyBoundHook = new SkyBoundHook(this);
         this.eliteMobsHook = new EliteMobsHook(this);
         this.fmmHook = new FreeMinecraftModelsHook(this);
+        if (!eliteMobsHook.isAvailable() || !fmmHook.isAvailable()) {
+            getLogger().severe("VoidRift requires EliteMobs and FreeMinecraftModels with compatible APIs.");
+            getLogger().severe("Install/update both plugins, then restart the server.");
+            Bukkit.getPluginManager().disablePlugin(this);
+            return;
+        }
         this.mythicMobsHook = new MythicMobsHook(this);
         this.citizensHook = new CitizensHook(this);
         this.sopItemsHook = new SopItemsHook(this);
@@ -116,6 +126,10 @@ public final class VoidRiftPlugin extends JavaPlugin {
         this.bossBarDisplay = new BossBarDisplay(this);
         this.eventGui = new EventGui(this);
         this.leaderboard = new Leaderboard(this);
+
+        // Island War (only if SkyBound available)
+        this.islandWarManager = new me.reil.voidrift.islandwar.IslandWarManager(this);
+        this.islandWarMenu = new me.reil.voidrift.islandwar.IslandWarMenu(this, islandWarManager);
 
         // Init Vault economy cache
         this.rewardManager.initVault();
@@ -146,6 +160,9 @@ public final class VoidRiftPlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new PortalListener(this, portalManager, eventManager), this);
         Bukkit.getPluginManager().registerEvents(new WizardListener(this), this);
         Bukkit.getPluginManager().registerEvents(eventGui, this);
+        Bukkit.getPluginManager().registerEvents(islandWarMenu, this);
+        Bukkit.getPluginManager().registerEvents(
+                new me.reil.voidrift.islandwar.IslandHeartListener(this, islandWarManager), this);
 
         // Scheduler (event tick every second)
         this.schedulerTask = Bukkit.getScheduler().runTaskTimer(this, new Runnable() {
@@ -203,4 +220,6 @@ public final class VoidRiftPlugin extends JavaPlugin {
     public SopItemsHook getSopItemsHook() { return sopItemsHook; }
     public me.reil.voidrift.integration.SopCustomBlocksHook getSopCustomBlocksHook() { return sopCustomBlocksHook; }
     public me.reil.voidrift.loot.LootChestManager getLootChestManager() { return lootChestManager; }
+    public me.reil.voidrift.islandwar.IslandWarManager getIslandWarManager() { return islandWarManager; }
+    public me.reil.voidrift.islandwar.IslandWarMenu getIslandWarMenu() { return islandWarMenu; }
 }

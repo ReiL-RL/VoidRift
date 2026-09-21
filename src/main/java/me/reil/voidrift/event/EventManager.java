@@ -11,6 +11,7 @@ import me.reil.voidrift.objective.QuestStage;
 import me.reil.voidrift.portal.PortalManager;
 import me.reil.voidrift.reward.RewardManager;
 import me.reil.voidrift.zone.WaveSpawner;
+import me.reil.voidrift.zone.ZoneDefinition;
 import me.reil.voidrift.zone.ZoneManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -141,6 +142,11 @@ public final class EventManager {
         ActiveEvent event = activeEvents.remove(eventId);
         if (event == null) return;
 
+        // Island War cleanup
+        if (event.getDefinition().getType() == EventType.ISLAND_WAR && plugin.getIslandWarManager() != null) {
+            plugin.getIslandWarManager().onEnd(event);
+        }
+
         // Update leaderboard
         plugin.getLeaderboard().onEventEnd(event);
 
@@ -154,6 +160,7 @@ public final class EventManager {
 
         // Give rewards
         for (UUID playerId : event.getParticipants()) {
+            if (plugin.getObjectiveTracker().hasCompleted(eventId, playerId)) continue;
             Player player = Bukkit.getPlayer(playerId);
             if (player != null) {
                 rewardManager.giveRewards(player, event);
@@ -171,6 +178,9 @@ public final class EventManager {
         // Despawn mobs
         waveSpawner.cleanup(event);
 
+        // Clear objective progress after rewards/stat logic is done.
+        plugin.getObjectiveTracker().onEventEnd(eventId);
+
         // Schedule next
         EventDefinition def = definitions.get(eventId);
         if (def != null && "INTERVAL".equalsIgnoreCase(def.getSchedule())) {
@@ -186,6 +196,15 @@ public final class EventManager {
     public boolean startEvent(String eventId) {
         EventDefinition def = definitions.get(eventId);
         if (def == null || activeEvents.containsKey(eventId)) return false;
+
+        List<String> issues = validateEvent(def);
+        if (!issues.isEmpty()) {
+            plugin.getLogger().warning("Cannot start event '" + eventId + "':");
+            for (String issue : issues) {
+                plugin.getLogger().warning(" - " + issue);
+            }
+            return false;
+        }
 
         ActiveEvent event = new ActiveEvent(def);
 
@@ -205,6 +224,11 @@ public final class EventManager {
 
         // Build portal (particles appear)
         portalManager.buildPortal(eventId);
+
+        // Island War initialization (auto-register all online islands)
+        if (def.getType() == EventType.ISLAND_WAR && plugin.getIslandWarManager() != null) {
+            plugin.getIslandWarManager().onStart(event);
+        }
 
         // Sound effect
         if (plugin.getSoundManager() != null) {
@@ -301,11 +325,17 @@ public final class EventManager {
 
         event.finish();
 
+        // Island War cleanup
+        if (event.getDefinition().getType() == EventType.ISLAND_WAR && plugin.getIslandWarManager() != null) {
+            plugin.getIslandWarManager().onEnd(event);
+        }
+
         // Update leaderboard
         plugin.getLeaderboard().onEventEnd(event);
 
         // Give rewards to participants
         for (UUID playerId : event.getParticipants()) {
+            if (plugin.getObjectiveTracker().hasCompleted(eventId, playerId)) continue;
             Player player = Bukkit.getPlayer(playerId);
             if (player != null) {
                 rewardManager.giveRewards(player, event);
@@ -317,6 +347,9 @@ public final class EventManager {
 
         // Despawn mobs
         waveSpawner.cleanup(event);
+
+        // Clear objective progress after rewards are resolved.
+        plugin.getObjectiveTracker().onEventEnd(eventId);
 
         // Schedule next
         EventDefinition def = definitions.get(eventId);
@@ -370,6 +403,13 @@ public final class EventManager {
         ActiveEvent event = activeEvents.get(eventId);
         if (event == null || event.isFinished()) return false;
         if (event.getParticipants().size() >= event.getDefinition().getMaxPlayers()) return false;
+
+        // Island War: register the player's island (places heart + adds all members)
+        if (event.getDefinition().getType() == EventType.ISLAND_WAR) {
+            if (plugin.getIslandWarManager() == null) return false;
+            return plugin.getIslandWarManager().registerIsland(event, player);
+        }
+
         event.addParticipant(player.getUniqueId());
         plugin.getObjectiveTracker().onPlayerJoin(eventId, player.getUniqueId());
         // Apply modifiers to player
@@ -656,6 +696,72 @@ public final class EventManager {
             case "SATURDAY": return Calendar.SATURDAY;
             default: return -1;
         }
+    }
+
+    public List<String> validateEvent(EventDefinition def) {
+        List<String> issues = new ArrayList<String>();
+        if (def == null) {
+            issues.add("event definition is null");
+            return issues;
+        }
+
+        if (def.getDurationSeconds() <= 0) issues.add("duration-seconds must be greater than 0");
+        if (def.getMaxPlayers() < 1) issues.add("max-players must be at least 1");
+        if (def.getMinPlayers() < 0) issues.add("min-players cannot be negative");
+        if (def.getMinPlayers() > def.getMaxPlayers()) issues.add("min-players cannot be greater than max-players");
+
+        if (def.getType() == EventType.ISLAND_WAR) {
+            if (!plugin.getSkyBoundHook().isAvailable()) {
+                issues.add("ISLAND_WAR requires SkyBound addon mode");
+            }
+            return issues;
+        }
+
+        String zoneId = def.getZoneId();
+        if (zoneId == null || zoneId.trim().isEmpty()) {
+            issues.add("zone is not set");
+            return issues;
+        }
+
+        ZoneDefinition zone = zoneManager.getZone(zoneId);
+        if (zone == null) {
+            issues.add("zone '" + zoneId + "' does not exist");
+            return issues;
+        }
+        issues.addAll(validateZone(zone, requiresMobs(def.getType())));
+        return issues;
+    }
+
+    public List<String> validateZone(ZoneDefinition zone, boolean requireMobs) {
+        List<String> issues = new ArrayList<String>();
+        if (zone == null) {
+            issues.add("zone is null");
+            return issues;
+        }
+        if (zone.getWorld() == null || Bukkit.getWorld(zone.getWorld()) == null) {
+            issues.add("world is not loaded: " + zone.getWorld());
+        }
+        if (zone.getAreas().isEmpty()) {
+            issues.add("no areas configured");
+        } else {
+            int idx = 1;
+            for (ZoneDefinition.Area area : zone.getAreas()) {
+                if (area.getPos1() == null || area.getPos2() == null) {
+                    issues.add("area" + idx + " has missing pos1/pos2");
+                }
+                idx++;
+            }
+        }
+        if (requireMobs) {
+            if (zone.getSpawnPoints().isEmpty()) issues.add("no spawn points configured");
+            if (zone.getMobPools().isEmpty()) issues.add("no mob pool configured");
+            if (zone.getMaxMobs() <= 0) issues.add("max-mobs must be greater than 0 for mob events");
+        }
+        return issues;
+    }
+
+    private boolean requiresMobs(EventType type) {
+        return type == EventType.WAVE_SURVIVAL || type == EventType.BOSS_FIGHT;
     }
 
     private EventType parseType(String str) {

@@ -4,9 +4,9 @@ import me.reil.voidrift.VoidRiftPlugin;
 import me.reil.voidrift.event.ActiveEvent;
 import me.reil.voidrift.event.EventDefinition;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -44,6 +44,12 @@ public final class RewardManager {
         vaultChecked = true;
     }
 
+    public boolean isEconomyAvailable() {
+        if (plugin.getSkyBoundHook().isAvailable()) return true;
+        if (!vaultChecked) initVault();
+        return vaultEconomy != null;
+    }
+
     public void giveRewards(Player player, ActiveEvent event) {
         EventDefinition def = event.getDefinition();
         int score = event.getScore(player.getUniqueId());
@@ -54,34 +60,45 @@ public final class RewardManager {
             long remaining = getRemainingCooldown(player.getUniqueId(), def.getId(), cooldownSeconds);
             long minutes = remaining / 60;
             if (minutes < 1) minutes = 1;
-            java.util.Map<String, String> ph = new java.util.LinkedHashMap<String, String>();
+            Map<String, String> ph = new LinkedHashMap<String, String>();
+            ph.put("time", minutes + " мин.");
             ph.put("minutes", String.valueOf(minutes));
-            player.sendMessage(plugin.getLang().msg("cooldown.active", ph));
+            player.sendMessage(plugin.getLang().msgFor(player, "messages.reward.cooldown", ph));
             return;
         }
 
-        // Record cooldown
-        setCooldown(player.getUniqueId(), def.getId());
-
         // Money (via Vault or SkyBound)
+        boolean moneyGiven = false;
         if (def.getRewardMoney() > 0) {
             if (plugin.getSkyBoundHook().isAvailable()) {
-                plugin.getSkyBoundHook().depositMoney(player, def.getRewardMoney());
+                if (!plugin.getSkyBoundHook().depositMoney(player, def.getRewardMoney())) {
+                    moneyGiven = giveMoneyVault(player, def.getRewardMoney());
+                } else {
+                    moneyGiven = true;
+                }
             } else {
-                giveMoneyVault(player, def.getRewardMoney());
+                moneyGiven = giveMoneyVault(player, def.getRewardMoney());
+            }
+            if (!moneyGiven) {
+                plugin.getLogger().warning("Could not give money reward for event '" + def.getId()
+                        + "' to " + player.getName() + ": no compatible economy provider.");
             }
         }
 
         // Island XP (via SkyBound)
+        boolean islandXpGiven = false;
         if (def.getRewardIslandXp() > 0 && plugin.getSkyBoundHook().isAvailable()) {
-            plugin.getSkyBoundHook().addIslandXp(player, def.getRewardIslandXp());
+            islandXpGiven = plugin.getSkyBoundHook().addIslandXp(player, def.getRewardIslandXp());
         }
 
         // Commands
         for (String cmd : def.getRewardCommands()) {
+            if (cmd == null || cmd.trim().isEmpty()) continue;
             String resolved = cmd.replace("{player}", player.getName())
+                    .replace("{uuid}", player.getUniqueId().toString())
                     .replace("{score}", String.valueOf(score))
-                    .replace("{event}", def.getId());
+                    .replace("{event}", def.getId())
+                    .replace("{event_name}", plugin.getLang().color(def.getDisplayName()));
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), resolved);
         }
 
@@ -91,14 +108,22 @@ public final class RewardManager {
             plugin.getSkyBoundHook().trackMission(player, "CUSTOM", "EVENT_" + def.getId().toUpperCase(), 1);
         }
 
-        player.sendMessage(plugin.getLang().msg("reward.received", java.util.Collections.singletonMap("event_name", def.getDisplayName())));
-        if (def.getRewardMoney() > 0) {
-            java.util.Map<String, String> ph = new java.util.LinkedHashMap<String, String>();
+        // Record cooldown after reward processing, so temporary economy errors do not lock players out before work is attempted.
+        setCooldown(player.getUniqueId(), def.getId());
+
+        player.sendMessage(plugin.getLang().msgFor(player, "messages.reward.title",
+                Collections.singletonMap("event", def.getDisplayName())));
+        if (def.getRewardMoney() > 0 && moneyGiven) {
+            Map<String, String> ph = new LinkedHashMap<String, String>();
             ph.put("amount", String.format("%.0f", def.getRewardMoney()));
-            player.sendMessage(plugin.getLang().msg("reward.money", ph));
+            player.sendMessage(plugin.getLang().msgFor(player, "messages.reward.money", ph));
+        }
+        if (def.getRewardIslandXp() > 0 && islandXpGiven) {
+            player.sendMessage(plugin.getLang().color("&b  +" + def.getRewardIslandXp() + " island XP"));
         }
         if (score > 0) {
-            player.sendMessage(plugin.getLang().msg("reward.score", java.util.Collections.singletonMap("score", String.valueOf(score))));
+            player.sendMessage(plugin.getLang().msgFor(player, "messages.reward.score",
+                    Collections.singletonMap("score", String.valueOf(score))));
         }
     }
 
@@ -139,7 +164,7 @@ public final class RewardManager {
         return Math.max(0, cooldownSeconds - elapsed);
     }
 
-    private void giveMoneyVault(Player player, double amount) {
+    private boolean giveMoneyVault(Player player, double amount) {
         if (!vaultChecked) {
             initVault();
         }
@@ -147,7 +172,9 @@ public final class RewardManager {
             try {
                 vaultEconomy.getClass().getMethod("depositPlayer", org.bukkit.OfflinePlayer.class, double.class)
                         .invoke(vaultEconomy, player, amount);
+                return true;
             } catch (Exception ignored) {}
         }
+        return false;
     }
 }

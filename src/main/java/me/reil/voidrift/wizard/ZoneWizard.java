@@ -1,8 +1,6 @@
 package me.reil.voidrift.wizard;
 
 import me.reil.voidrift.VoidRiftPlugin;
-import me.reil.voidrift.zone.ZoneDefinition;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -17,23 +15,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Zone setup wizard — hotbar items + chat input for mob pools.
- *
- * Steps:
- * 1. Set pos1 (corner 1)
- * 2. Set pos2 (corner 2)
- * 3. Add spawn points (repeat until Done)
- * 4. Add mob pool entries via chat (type, id, model, weight)
- * 5. Set max mobs (chat input)
- * 6. Done — saves to zones.yml
- *
- * Hotbar:
- *  slot 0 = primary action
- *  slot 1 = secondary / next
- *  slot 2 = done (where applicable)
- *  slot 6 = Skip
- *  slot 7 = Back
- *  slot 8 = Cancel
+ * Hotbar-based arena/zone setup wizard.
  */
 public final class ZoneWizard {
 
@@ -44,29 +26,24 @@ public final class ZoneWizard {
         this.plugin = plugin;
     }
 
-    // ===== Public API =====
-
     public void start(Player player, String zoneId) {
-        String worldName = player.getWorld().getName();
-        ZoneWizardSession session = new ZoneWizardSession(zoneId, worldName);
+        ZoneWizardSession session = new ZoneWizardSession(zoneId, player.getWorld().getName());
         sessions.put(player.getUniqueId(), session);
 
-        clearHotbar(player);
-        giveStepItems(player, session);
+        refreshStep(player, session);
 
-        Map<String, String> v = new HashMap<String, String>();
-        v.put("zone", zoneId);
-
+        Map<String, String> vars = vars("zone", zoneId);
         player.sendMessage("");
-        player.sendMessage(plugin.getLang().msg("messages.zone-wizard.title", v));
-        player.sendMessage(plugin.getLang().msg("messages.zone-wizard.step1"));
+        player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.title", vars));
+        player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.step1"));
+        player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.hotbar-hint"));
         player.sendMessage("");
     }
 
     public boolean handleInteract(Player player, int slot) {
         ZoneWizardSession session = sessions.get(player.getUniqueId());
         if (session == null) return false;
-        if (session.isAwaitingChatInput()) return true; // Block hotbar during chat input
+        if (session.isAwaitingChatInput()) return true;
 
         if (slot == 8) { cancel(player); return true; }
         if (slot == 7) { handleBack(player, session); return true; }
@@ -75,6 +52,7 @@ public final class ZoneWizard {
         switch (session.getStep()) {
             case SET_POS1: return handleSetPos1(player, session, slot);
             case SET_POS2: return handleSetPos2(player, session, slot);
+            case ADD_AREAS: return handleAddBoundaryPoints(player, session, slot);
             case ADD_SPAWN_POINTS: return handleAddSpawnPoints(player, session, slot);
             case ADD_MOB_POOL: return handleAddMobPool(player, session, slot);
             case SET_MAX_MOBS: return handleSetMaxMobs(player, session, slot);
@@ -82,84 +60,72 @@ public final class ZoneWizard {
         }
     }
 
-    /**
-     * Handle chat input for mob pool configuration.
-     * @return true if consumed
-     */
     public boolean handleChat(Player player, String message) {
         ZoneWizardSession session = sessions.get(player.getUniqueId());
         if (session == null || !session.isAwaitingChatInput()) return false;
 
         String msg = message.trim();
 
-        // Max mobs input
         if (session.getStep() == ZoneWizardStep.SET_MAX_MOBS) {
             try {
-                int max = Integer.parseInt(msg);
+                int max = Math.max(0, Integer.parseInt(msg));
                 session.setMaxMobs(max);
-                Map<String, String> v = new HashMap<String, String>();
-                v.put("count", String.valueOf(max));
-                player.sendMessage(plugin.getLang().msg("messages.zone-wizard.maxmobs-set", v));
+                player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.maxmobs-set",
+                        vars("count", String.valueOf(max))));
                 session.setAwaitingChatInput(false);
                 finishWizard(player, session);
             } catch (NumberFormatException e) {
-                player.sendMessage(plugin.getLang().msg("messages.zone-wizard.chat-number-error"));
+                player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.chat-number-error"));
             }
             return true;
         }
 
-        // Mob pool entry state machine
         switch (session.getMobEntryState()) {
-            case AWAITING_TYPE:
-                if ("v".equalsIgnoreCase(msg) || "vanilla".equalsIgnoreCase(msg)) {
-                    session.setPendingMobType("VANILLA");
-                    session.setMobEntryState(ZoneWizardSession.MobEntryState.AWAITING_ID);
-                    player.sendMessage(plugin.getLang().msg("messages.zone-wizard.chat-id-vanilla"));
-                } else if ("e".equalsIgnoreCase(msg) || "em".equalsIgnoreCase(msg) || "elitemobs".equalsIgnoreCase(msg)) {
-                    session.setPendingMobType("ELITEMOBS");
-                    session.setMobEntryState(ZoneWizardSession.MobEntryState.AWAITING_ID);
-                    player.sendMessage(plugin.getLang().msg("messages.zone-wizard.chat-id-em"));
-                } else {
-                    player.sendMessage(plugin.getLang().msg("messages.zone-wizard.chat-type-error"));
-                }
-                return true;
-
             case AWAITING_ID:
                 session.setPendingMobId(msg);
-                session.setMobEntryState(ZoneWizardSession.MobEntryState.AWAITING_MODEL);
-                if (plugin.getFmmHook().isAvailable()) {
-                    player.sendMessage(plugin.getLang().msg("messages.zone-wizard.chat-model"));
+                if (plugin.getFmmHook().isAvailable() || "ELITEMOBS".equalsIgnoreCase(session.getPendingMobType())) {
+                    session.setMobEntryState(ZoneWizardSession.MobEntryState.AWAITING_MODEL);
+                    player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.chat-model"));
                 } else {
-                    // FMM not available — skip model
-                    session.setMobEntryState(ZoneWizardSession.MobEntryState.AWAITING_WEIGHT);
-                    player.sendMessage(plugin.getLang().msg("messages.zone-wizard.chat-weight"));
+                    session.setPendingModelId(null);
+                    session.setMobEntryState(ZoneWizardSession.MobEntryState.AWAITING_WAVE);
+                    player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.chat-wave"));
                 }
                 return true;
 
             case AWAITING_MODEL:
-                String modelId = "-".equals(msg) || "none".equalsIgnoreCase(msg) ? null : msg;
-                session.setMobEntryState(ZoneWizardSession.MobEntryState.AWAITING_WEIGHT);
-                session.getMobEntries().add(new ZoneWizardSession.MobEntry(
-                        session.getPendingMobId(), session.getPendingMobType(), modelId, 0));
-                player.sendMessage(plugin.getLang().msg("messages.zone-wizard.chat-weight"));
+                session.setPendingModelId("-".equals(msg) || "none".equalsIgnoreCase(msg) ? null : msg);
+                session.setMobEntryState(ZoneWizardSession.MobEntryState.AWAITING_WAVE);
+                player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.chat-wave"));
+                return true;
+
+            case AWAITING_WAVE:
+                try {
+                    int wave = Math.max(0, Integer.parseInt(msg));
+                    session.setPendingWave(wave);
+                    session.setMobEntryState(ZoneWizardSession.MobEntryState.AWAITING_WEIGHT);
+                    player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.chat-weight"));
+                } catch (NumberFormatException e) {
+                    player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.chat-number-error"));
+                }
                 return true;
 
             case AWAITING_WEIGHT:
                 try {
-                    int weight = Integer.parseInt(msg);
-                    if (weight < 1) weight = 1;
-                    // Update last entry with correct weight
-                    List<ZoneWizardSession.MobEntry> entries = session.getMobEntries();
-                    if (!entries.isEmpty()) {
-                        ZoneWizardSession.MobEntry last = entries.remove(entries.size() - 1);
-                        entries.add(new ZoneWizardSession.MobEntry(last.getMobId(), last.getMobType(), last.getModelId(), weight));
-                    }
+                    int weight = Math.max(1, Integer.parseInt(msg));
+                    session.getMobEntries().add(new ZoneWizardSession.MobEntry(
+                            session.getPendingMobId(),
+                            session.getPendingMobType(),
+                            session.getPendingModelId(),
+                            session.getPendingWave(),
+                            weight));
                     session.setAwaitingChatInput(false);
                     session.setMobEntryState(ZoneWizardSession.MobEntryState.NONE);
-                    player.sendMessage(plugin.getLang().msg("messages.zone-wizard.mob-added"));
+                    player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.mob-added"));
                     refreshStep(player, session);
+                    showMobStepHelp(player);
                 } catch (NumberFormatException e) {
-                    player.sendMessage(plugin.getLang().msg("messages.zone-wizard.chat-number-error"));
+                    player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.chat-number-error"));
                 }
                 return true;
 
@@ -180,18 +146,16 @@ public final class ZoneWizard {
     public void cancel(Player player) {
         sessions.remove(player.getUniqueId());
         clearHotbar(player);
-        player.sendMessage(plugin.getLang().msg("messages.zone-wizard.cancelled"));
+        player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.cancelled"));
     }
-
-    // ===== Step handlers =====
 
     private boolean handleSetPos1(Player player, ZoneWizardSession session, int slot) {
         if (slot == 0) {
             session.setPos1(player.getLocation().clone());
-            player.sendMessage(plugin.getLang().msg("messages.zone-wizard.pos1-set"));
+            player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.pos1-set"));
             session.setStep(ZoneWizardStep.SET_POS2);
             refreshStep(player, session);
-            player.sendMessage(plugin.getLang().msg("messages.zone-wizard.step2"));
+            player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.step2"));
         }
         return true;
     }
@@ -199,11 +163,34 @@ public final class ZoneWizard {
     private boolean handleSetPos2(Player player, ZoneWizardSession session, int slot) {
         if (slot == 0) {
             session.setPos2(player.getLocation().clone());
-            player.sendMessage(plugin.getLang().msg("messages.zone-wizard.pos2-set"));
+            player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.pos2-set"));
+            session.setStep(ZoneWizardStep.ADD_AREAS);
+            refreshStep(player, session);
+            player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.step-areas"));
+            player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.step-areas-hint"));
+        }
+        return true;
+    }
+
+    private boolean handleAddBoundaryPoints(Player player, ZoneWizardSession session, int slot) {
+        if (slot == 0) {
+            if (session.getPendingAreaPos1() == null) {
+                session.setPendingAreaPos1(player.getLocation().clone());
+                player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.area-pos1-set"));
+            } else {
+                Location pos1 = session.getPendingAreaPos1();
+                Location pos2 = player.getLocation().clone();
+                session.getAreas().add(new ZoneWizardSession.AreaEntry(pos1, pos2));
+                session.setPendingAreaPos1(null);
+                player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.area-added",
+                        vars("count", String.valueOf(session.getAreas().size() + 1))));
+            }
+        } else if (slot == 1) {
+            session.setPendingAreaPos1(null);
             session.setStep(ZoneWizardStep.ADD_SPAWN_POINTS);
             refreshStep(player, session);
-            player.sendMessage(plugin.getLang().msg("messages.zone-wizard.step3"));
-            player.sendMessage(plugin.getLang().msg("messages.zone-wizard.step3-hint"));
+            player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.step3"));
+            player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.step3-hint"));
         }
         return true;
     }
@@ -212,50 +199,31 @@ public final class ZoneWizard {
         if (slot == 0) {
             session.getSpawnPoints().add(player.getLocation().clone());
             session.incrementSpawnPointCount();
-            Map<String, String> v = new HashMap<String, String>();
-            v.put("count", String.valueOf(session.getSpawnPointCount()));
-            player.sendMessage(plugin.getLang().msg("messages.zone-wizard.spawn-added", v));
+            player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.spawn-added",
+                    vars("count", String.valueOf(session.getSpawnPointCount()))));
         } else if (slot == 1) {
-            // Next — go to mob pool
             session.setStep(ZoneWizardStep.ADD_MOB_POOL);
             refreshStep(player, session);
-            player.sendMessage("");
-            player.sendMessage(plugin.getLang().msg("messages.zone-wizard.step4"));
-            player.sendMessage(plugin.getLang().msg("messages.zone-wizard.step4-hint-add"));
-            player.sendMessage(plugin.getLang().msg("messages.zone-wizard.step4-hint-next"));
-            if (plugin.getEliteMobsHook().isAvailable()) {
-                player.sendMessage(plugin.getLang().msg("messages.zone-wizard.step4-em-available"));
-            }
-            if (plugin.getFmmHook().isAvailable()) {
-                player.sendMessage(plugin.getLang().msg("messages.zone-wizard.step4-fmm-available"));
-            }
+            showMobStepHelp(player);
         }
         return true;
     }
 
     private boolean handleAddMobPool(Player player, ZoneWizardSession session, int slot) {
         if (slot == 0) {
-            // Start chat input for mob entry
-            session.setAwaitingChatInput(true);
-            session.setMobEntryState(ZoneWizardSession.MobEntryState.AWAITING_TYPE);
-            player.sendMessage("");
-            player.sendMessage(plugin.getLang().msg("messages.zone-wizard.chat-type-prompt"));
-            player.sendMessage(plugin.getLang().msg("messages.zone-wizard.chat-type-vanilla"));
-            if (plugin.getEliteMobsHook().isAvailable()) {
-                player.sendMessage(plugin.getLang().msg("messages.zone-wizard.chat-type-em"));
-            }
+            startMobEntry(player, session, "VANILLA");
         } else if (slot == 1) {
-            // Next — go to max mobs
+            startMobEntry(player, session, "ELITEMOBS");
+        } else if (slot == 2) {
             session.setStep(ZoneWizardStep.SET_MAX_MOBS);
             session.setAwaitingChatInput(true);
             refreshStep(player, session);
-            player.sendMessage(plugin.getLang().msg("messages.zone-wizard.step5-maxmobs"));
+            player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.step5-maxmobs"));
         }
         return true;
     }
 
     private boolean handleSetMaxMobs(Player player, ZoneWizardSession session, int slot) {
-        // Max mobs is handled via chat, but if they click confirm use default
         if (slot == 0) {
             session.setAwaitingChatInput(false);
             finishWizard(player, session);
@@ -263,30 +231,53 @@ public final class ZoneWizard {
         return true;
     }
 
-    // ===== Skip & Back =====
+    private void startMobEntry(Player player, ZoneWizardSession session, String type) {
+        if ("ELITEMOBS".equalsIgnoreCase(type) && !plugin.getEliteMobsHook().isAvailable()) {
+            player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.em-required"));
+            return;
+        }
+        session.setPendingMobType(type);
+        session.setPendingMobId(null);
+        session.setPendingModelId(null);
+        session.setPendingWave(0);
+        session.setAwaitingChatInput(true);
+        session.setMobEntryState(ZoneWizardSession.MobEntryState.AWAITING_ID);
+
+        player.sendMessage("");
+        player.sendMessage(plugin.getLang().msgFor(player, "ELITEMOBS".equalsIgnoreCase(type)
+                ? "messages.zone-wizard.chat-id-em"
+                : "messages.zone-wizard.chat-id-vanilla"));
+    }
 
     private void handleSkip(Player player, ZoneWizardSession session) {
         switch (session.getStep()) {
             case SET_POS1:
                 session.setStep(ZoneWizardStep.SET_POS2);
                 refreshStep(player, session);
-                player.sendMessage(plugin.getLang().msg("messages.zone-wizard.skip-pos1"));
+                player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.skip-pos1"));
                 return;
             case SET_POS2:
+                session.setStep(ZoneWizardStep.ADD_AREAS);
+                refreshStep(player, session);
+                player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.skip-pos2"));
+                return;
+            case ADD_AREAS:
                 session.setStep(ZoneWizardStep.ADD_SPAWN_POINTS);
                 refreshStep(player, session);
-                player.sendMessage(plugin.getLang().msg("messages.zone-wizard.skip-pos2"));
+                session.setPendingAreaPos1(null);
+                player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.skip-areas"));
                 return;
             case ADD_SPAWN_POINTS:
                 session.setStep(ZoneWizardStep.ADD_MOB_POOL);
                 refreshStep(player, session);
-                player.sendMessage(plugin.getLang().msg("messages.zone-wizard.skip-spawns"));
+                player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.skip-spawns"));
+                showMobStepHelp(player);
                 return;
             case ADD_MOB_POOL:
                 session.setStep(ZoneWizardStep.SET_MAX_MOBS);
                 session.setAwaitingChatInput(true);
                 refreshStep(player, session);
-                player.sendMessage(plugin.getLang().msg("messages.zone-wizard.skip-mobs"));
+                player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.skip-mobs"));
                 return;
             case SET_MAX_MOBS:
                 session.setAwaitingChatInput(false);
@@ -302,50 +293,35 @@ public final class ZoneWizard {
             session.setAwaitingChatInput(false);
             session.setMobEntryState(ZoneWizardSession.MobEntryState.NONE);
         }
-        ZoneWizardStep prev = session.getPreviousStep();
-        if (prev == null) {
-            player.sendMessage(plugin.getLang().msg("messages.zone-wizard.back-nowhere"));
+        if (!session.goBack()) {
+            player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.back-nowhere"));
             return;
         }
-        session.goBack();
         refreshStep(player, session);
-        Map<String, String> v = new HashMap<String, String>();
-        v.put("step", stepName(session.getStep()));
-        player.sendMessage(plugin.getLang().msg("messages.zone-wizard.back-to", v));
+        player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.back-to",
+                vars("step", stepName(session.getStep()))));
     }
 
     private void finishWizard(Player player, ZoneWizardSession session) {
         session.setStep(ZoneWizardStep.DONE);
         clearHotbar(player);
         sessions.remove(player.getUniqueId());
-
-        // Save zone
         saveZone(session);
-
-        Map<String, String> v = new HashMap<String, String>();
-        v.put("zone", session.getZoneId());
-        v.put("count", String.valueOf(session.getSpawnPointCount()));
+        plugin.getZoneManager().reloadZones();
 
         player.sendMessage("");
-        player.sendMessage(plugin.getLang().msg("messages.zone-wizard.finished", v));
-
-        Map<String, String> vs = new HashMap<String, String>();
-        vs.put("count", String.valueOf(session.getSpawnPointCount()));
-        player.sendMessage(plugin.getLang().msg("messages.zone-wizard.finished-spawns", vs));
-
-        Map<String, String> vm = new HashMap<String, String>();
-        vm.put("count", String.valueOf(session.getMobEntries().size()));
-        player.sendMessage(plugin.getLang().msg("messages.zone-wizard.finished-mobs", vm));
-
-        Map<String, String> vmx = new HashMap<String, String>();
-        vmx.put("count", String.valueOf(session.getMaxMobs()));
-        player.sendMessage(plugin.getLang().msg("messages.zone-wizard.finished-maxmobs", vmx));
-
-        player.sendMessage(plugin.getLang().msg("messages.zone-wizard.finished-hint", v));
+        player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.finished",
+                vars("zone", session.getZoneId())));
+        player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.finished-spawns",
+                vars("count", String.valueOf(session.getSpawnPointCount()))));
+        player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.finished-mobs",
+                vars("count", String.valueOf(session.getMobEntries().size()))));
+        player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.finished-maxmobs",
+                vars("count", String.valueOf(session.getMaxMobs()))));
+        player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.finished-hint",
+                vars("zone", session.getZoneId())));
         player.sendMessage("");
     }
-
-    // ===== Save =====
 
     private void saveZone(ZoneWizardSession session) {
         java.io.File file = new java.io.File(plugin.getDataFolder(), "zones.yml");
@@ -353,8 +329,7 @@ public final class ZoneWizard {
                 org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(file);
 
         String path = "zones." + session.getZoneId();
-        String worldName = session.getWorldName();
-        cfg.set(path + ".world", worldName);
+        cfg.set(path + ".world", session.getWorldName());
 
         if (session.getPos1() != null) {
             cfg.set(path + ".pos1.x", session.getPos1().getX());
@@ -367,9 +342,26 @@ public final class ZoneWizard {
             cfg.set(path + ".pos2.z", session.getPos2().getZ());
         }
 
+        cfg.set(path + ".areas.area1.pos1.x", session.getPos1().getX());
+        cfg.set(path + ".areas.area1.pos1.y", session.getPos1().getY());
+        cfg.set(path + ".areas.area1.pos1.z", session.getPos1().getZ());
+        cfg.set(path + ".areas.area1.pos2.x", session.getPos2().getX());
+        cfg.set(path + ".areas.area1.pos2.y", session.getPos2().getY());
+        cfg.set(path + ".areas.area1.pos2.z", session.getPos2().getZ());
+        int areaIdx = 2;
+        for (ZoneWizardSession.AreaEntry area : session.getAreas()) {
+            String areaPath = path + ".areas.area" + areaIdx;
+            cfg.set(areaPath + ".pos1.x", area.getPos1().getX());
+            cfg.set(areaPath + ".pos1.y", area.getPos1().getY());
+            cfg.set(areaPath + ".pos1.z", area.getPos1().getZ());
+            cfg.set(areaPath + ".pos2.x", area.getPos2().getX());
+            cfg.set(areaPath + ".pos2.y", area.getPos2().getY());
+            cfg.set(areaPath + ".pos2.z", area.getPos2().getZ());
+            areaIdx++;
+        }
+
         cfg.set(path + ".max-mobs", session.getMaxMobs());
 
-        // Spawn points
         int spIdx = 1;
         for (Location loc : session.getSpawnPoints()) {
             String spPath = path + ".spawn-points.sp" + spIdx;
@@ -379,18 +371,17 @@ public final class ZoneWizard {
             spIdx++;
         }
 
-        // Mob pools
-        List<java.util.Map<String, Object>> poolList = new ArrayList<java.util.Map<String, Object>>();
+        List<Map<String, Object>> poolList = new ArrayList<Map<String, Object>>();
         for (ZoneWizardSession.MobEntry entry : session.getMobEntries()) {
-            java.util.Map<String, Object> m = new java.util.LinkedHashMap<String, Object>();
-            m.put("mob-id", entry.getMobId());
-            m.put("mob-type", entry.getMobType());
+            Map<String, Object> mob = new LinkedHashMap<String, Object>();
+            mob.put("mob-id", entry.getMobId());
+            mob.put("mob-type", entry.getMobType());
             if (entry.getModelId() != null && !entry.getModelId().isEmpty()) {
-                m.put("model", entry.getModelId());
+                mob.put("model", entry.getModelId());
             }
-            m.put("weight", entry.getWeight());
-            m.put("wave", 0);
-            poolList.add(m);
+            mob.put("weight", entry.getWeight());
+            mob.put("wave", entry.getWave());
+            poolList.add(mob);
         }
         cfg.set(path + ".mob-pools", poolList);
 
@@ -401,7 +392,17 @@ public final class ZoneWizard {
         }
     }
 
-    // ===== UI =====
+    private void showMobStepHelp(Player player) {
+        player.sendMessage("");
+        player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.step4"));
+        player.sendMessage(plugin.getLang().msgFor(player, "messages.zone-wizard.step4-hotbar"));
+        player.sendMessage(plugin.getLang().msgFor(player, plugin.getEliteMobsHook().isAvailable()
+                ? "messages.zone-wizard.step4-em-available"
+                : "messages.zone-wizard.step4-em-missing"));
+        player.sendMessage(plugin.getLang().msgFor(player, plugin.getFmmHook().isAvailable()
+                ? "messages.zone-wizard.step4-fmm-available"
+                : "messages.zone-wizard.step4-fmm-missing"));
+    }
 
     private void refreshStep(Player player, ZoneWizardSession session) {
         clearHotbar(player);
@@ -417,6 +418,13 @@ public final class ZoneWizard {
                 player.getInventory().setItem(7, makeItem(Material.GRAY_CONCRETE, plugin.getLang().msg("messages.zone-wizard.btn-back")));
                 player.getInventory().setItem(8, makeItem(Material.RED_CONCRETE, plugin.getLang().msg("messages.zone-wizard.btn-cancel")));
                 break;
+            case ADD_AREAS:
+                player.getInventory().setItem(0, makeItem(Material.BLUE_CONCRETE, plugin.getLang().msg("messages.zone-wizard.btn-add-area-point")));
+                player.getInventory().setItem(1, makeItem(Material.YELLOW_CONCRETE, plugin.getLang().msg("messages.zone-wizard.btn-next")));
+                player.getInventory().setItem(6, makeItem(Material.ORANGE_CONCRETE, plugin.getLang().msg("messages.zone-wizard.btn-skip")));
+                player.getInventory().setItem(7, makeItem(Material.GRAY_CONCRETE, plugin.getLang().msg("messages.zone-wizard.btn-back")));
+                player.getInventory().setItem(8, makeItem(Material.RED_CONCRETE, plugin.getLang().msg("messages.zone-wizard.btn-cancel")));
+                break;
             case ADD_SPAWN_POINTS:
                 player.getInventory().setItem(0, makeItem(Material.LIME_CONCRETE, plugin.getLang().msg("messages.zone-wizard.btn-add-spawn")));
                 player.getInventory().setItem(1, makeItem(Material.YELLOW_CONCRETE, plugin.getLang().msg("messages.zone-wizard.btn-next")));
@@ -425,8 +433,9 @@ public final class ZoneWizard {
                 player.getInventory().setItem(8, makeItem(Material.RED_CONCRETE, plugin.getLang().msg("messages.zone-wizard.btn-cancel")));
                 break;
             case ADD_MOB_POOL:
-                player.getInventory().setItem(0, makeItem(Material.LIME_CONCRETE, plugin.getLang().msg("messages.zone-wizard.btn-add-mob")));
-                player.getInventory().setItem(1, makeItem(Material.YELLOW_CONCRETE, plugin.getLang().msg("messages.zone-wizard.btn-next")));
+                player.getInventory().setItem(0, makeItem(Material.ZOMBIE_HEAD, plugin.getLang().msg("messages.zone-wizard.btn-add-vanilla")));
+                player.getInventory().setItem(1, makeItem(Material.WITHER_SKELETON_SKULL, plugin.getLang().msg("messages.zone-wizard.btn-add-elitemob")));
+                player.getInventory().setItem(2, makeItem(Material.YELLOW_CONCRETE, plugin.getLang().msg("messages.zone-wizard.btn-next")));
                 player.getInventory().setItem(6, makeItem(Material.ORANGE_CONCRETE, plugin.getLang().msg("messages.zone-wizard.btn-skip")));
                 player.getInventory().setItem(7, makeItem(Material.GRAY_CONCRETE, plugin.getLang().msg("messages.zone-wizard.btn-back")));
                 player.getInventory().setItem(8, makeItem(Material.RED_CONCRETE, plugin.getLang().msg("messages.zone-wizard.btn-cancel")));
@@ -462,10 +471,17 @@ public final class ZoneWizard {
         switch (step) {
             case SET_POS1: return plugin.getLang().msg("messages.zone-wizard.step-pos1");
             case SET_POS2: return plugin.getLang().msg("messages.zone-wizard.step-pos2");
+            case ADD_AREAS: return plugin.getLang().msg("messages.zone-wizard.step-areas-name");
             case ADD_SPAWN_POINTS: return plugin.getLang().msg("messages.zone-wizard.step-spawns");
             case ADD_MOB_POOL: return plugin.getLang().msg("messages.zone-wizard.step-mobs");
             case SET_MAX_MOBS: return plugin.getLang().msg("messages.zone-wizard.step-maxmobs");
             default: return step.name();
         }
+    }
+
+    private Map<String, String> vars(String key, String value) {
+        Map<String, String> vars = new HashMap<String, String>();
+        vars.put(key, value);
+        return vars;
     }
 }

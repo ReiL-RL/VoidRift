@@ -300,11 +300,19 @@ public final class LootChestManager {
         Location p2 = zone.getPos2();
         if (p1.getWorld() == null) return null;
 
-        double x = Math.min(p1.getX(), p2.getX()) + random.nextDouble() * Math.abs(p2.getX() - p1.getX());
-        double z = Math.min(p1.getZ(), p2.getZ()) + random.nextDouble() * Math.abs(p2.getZ() - p1.getZ());
+        Location loc = null;
         double y = Math.min(p1.getY(), p2.getY());
+        for (int attempt = 0; attempt < 30; attempt++) {
+            double x = Math.min(p1.getX(), p2.getX()) + random.nextDouble() * Math.abs(p2.getX() - p1.getX());
+            double z = Math.min(p1.getZ(), p2.getZ()) + random.nextDouble() * Math.abs(p2.getZ() - p1.getZ());
+            Location candidate = new Location(p1.getWorld(), Math.floor(x), y, Math.floor(z));
+            if (zone.isInside(candidate)) {
+                loc = candidate;
+                break;
+            }
+        }
+        if (loc == null) return null;
 
-        Location loc = new Location(p1.getWorld(), Math.floor(x), y, Math.floor(z));
         // Find ground
         Block block = loc.getBlock();
         for (int i = 0; i < 20; i++) {

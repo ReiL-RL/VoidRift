@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Optional EliteMobs integration.
+ * Required EliteMobs integration.
  * Spawns EliteMobs custom bosses in event zones via reflection.
  *
  * Supports:
@@ -53,6 +53,20 @@ public final class EliteMobsHook {
     }
 
     public boolean isAvailable() { return available; }
+
+    /**
+     * Validate that an EliteMobs custom boss config can be resolved by the API.
+     * This creates the CustomBossEntity wrapper but does not spawn it.
+     */
+    public boolean canCreateBoss(String bossFileName) {
+        if (!available || bossFileName == null || bossFileName.trim().isEmpty()) return false;
+        try {
+            Object bossEntity = createMethod.invoke(null, bossFileName.trim());
+            return bossEntity != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     /**
      * Spawn an EliteMobs boss at a location.

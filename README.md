@@ -1,378 +1,536 @@
 # ✦ VoidRift
 
-> Гибкая система событий для Minecraft серверов. Работает автономно или как аддон к SkyBound.
+VoidRift — плагин событий для Minecraft-сервера. Может работать как отдельный плагин, но также умеет быть аддоном к SkyBound: выдавать награды в экономику/XP острова и использовать островной геймплей.
 
-![Version](https://img.shields.io/badge/version-1.0.0-purple)
-![API](https://img.shields.io/badge/Spigot-1.16.5+-green)
-![Java](https://img.shields.io/badge/Java-8+-orange)
+Главная идея: игрок входит в событие через портал, попадает на арену, выполняет цели, сражается с мобами/боссами, получает награды и выходит обратно только через портал выхода.
 
 ---
 
-## 📋 Что это?
+## Быстрый тест за 10 минут
 
-VoidRift — плагин событий (ивентов) с порталами, волнами мобов, боссами, наградами и гибкой системой целей. Игроки входят через порталы, выполняют задания, получают лут.
+### 1. Собери JAR
 
-**Ключевые фичи:**
-- 🌀 Порталы (статические, динамические, промежуточные двусторонние)
-- ⚔️ Волны мобов с боссами (EliteMobs, MythicMobs, ванильные)
-- 🎯 30+ типов целей (убить, собрать, выжить, дойти до волны...)
-- 🎁 Лут-сундуки (рандомные + боссовые)
-- 📊 Sidebar, ActionBar, BossBar с прогрессом
-- 🏆 Лидерборд, статистика, достижения
-- 🔧 Визарды для настройки через игру (без ручного редактирования конфигов)
-
----
-
-## 🚀 Установка
-
-1. Положи `VoidRift.jar` в папку `plugins/`
-2. Положи `SopLib.jar` в папку `plugins/` (обязательно)
-3. Перезапусти сервер
-4. Настрой через визарды или конфиги
-
----
-
-## 📦 Зависимости
-
-| Плагин | Обязательный? | Зачем |
-|--------|:---:|--------|
-| **SopLib** | ✅ | Мультиверсионность, утилиты |
-| EliteMobs | ❌ | Кастомные боссы |
-| FreeMinecraftModels | ❌ | 3D модели мобов |
-| MythicMobs | ❌ | Альтернатива EliteMobs |
-| SkyBound | ❌ | XP острова, банк |
-| Vault | ❌ | Экономика |
-| PlaceholderAPI | ❌ | Плейсхолдеры везде |
-| FlexAchievements | ❌ | Достижения |
-| SopItemsCreator | ❌ | Кастомные предметы |
-| SopCustomBlocks | ❌ | Кастомные блоки |
-| Citizens | ❌ | NPC |
-
-> Все опциональные плагины подключаются автоматически если найдены на сервере.
-
----
-
-## 🎮 Команды
-
-### Игроки
-| Команда | Описание |
-|---------|----------|
-| `/event` | Открыть GUI меню ивентов |
-| `/event top [ивент]` | Лидерборд |
-
-### Админы
-| Команда | Описание |
-|---------|----------|
-| `/riftadmin setup <ивент>` | Визард порталов |
-| `/riftadmin setupzone <зона>` | Визард зоны |
-| `/riftadmin createevent <id>` | Визард создания ивента |
-| `/riftadmin startnow <ивент>` | Запустить ивент |
-| `/riftadmin stopnow <ивент>` | Остановить ивент |
-| `/riftadmin start <ивент>` | Запустить с отсчётом |
-| `/riftadmin reload` | Перезагрузить конфиги |
-| `/riftadmin info [ивент]` | Информация |
-
----
-
-## ⚙️ Конфигурация
-
-### config.yml
-
-```yaml
-language: ru
-max-active-events: 3
-
-auto-start:
-  enabled: true
-
-portal:
-  preview-seconds: 10
-
-sounds:
-  event-start: { sound: BLOCK_PORTAL_TRIGGER, volume: 0.7, pitch: 1.5 }
-  wave-clear: { sound: ENTITY_PLAYER_LEVELUP, volume: 1.0, pitch: 1.5 }
-  boss-spawn: { sound: ENTITY_WITHER_SPAWN, volume: 1.0, pitch: 0.8 }
-
-modifiers:
-  enabled: true
-  max-count: 2
-
-display:
-  actionbar: true    # Прогресс в ActionBar
-  sidebar: true      # Панель справа
-  bossbar: true      # Полоска сверху
-
-rewards:
-  cooldown-seconds: 3600  # Кулдаун наград (1 час)
-
-scaling:
-  enabled: true
-  per-player-multiplier: 0.5  # +50% мобов за каждого доп. игрока
-
-loot-chests:
-  random:
-    enabled: true
-    count: 3
-    particle: VILLAGER_HAPPY
-  boss:
-    enabled: true
-    mode: CHEST  # CHEST / DROP / KILLER / TOP_DAMAGE
-    particle: FLAME
+```bash
+mvn -DskipTests clean package
 ```
 
-### events.yml
+Готовый файл будет здесь:
 
-```yaml
-events:
-  rift_assault:
-    display-name: "&5✦ Штурм Разлома"
-    description: "Выживи против волн мобов!"
-    type: WAVE_SURVIVAL          # WAVE_SURVIVAL, BOSS_FIGHT, RESOURCE_RACE, CUSTOM
-    zone: "my_zone"
-    duration-seconds: 300
-    interval-seconds: 1800
-    min-players: 1
-    max-players: 10
-    complete-on: ALL             # ALL = все цели, ANY = хотя бы одна
-    objectives:
-      - type: KILL_MOBS
-        amount: 15
-      - type: KILL_BOSS
-        target: rift_boss.yml
-        amount: 1
-      - type: SURVIVE_TIME
-        amount: 120
-    loot-table:
-      - item: DIAMOND
-        amount: 2
-        chance: 0.3
-      - item: GOLD_INGOT
-        amount: 5
-        chance: 0.6
-    rewards:
-      money: 5000
-      island-xp: 100
-      flex-achievement: "rift_complete"
-      commands:
-        - "give {player} diamond 1"
+```text
+target/voidrift-1.0.0-SNAPSHOT.jar
 ```
 
-### zones.yml
+Если хочешь только проверить компиляцию:
 
-```yaml
-zones:
-  my_zone:
-    world: world
-    pos1: { x: 0, y: 60, z: 0 }
-    pos2: { x: 50, y: 100, z: 50 }
-    max-mobs: 15
-    spawn-points:
-      sp1: { x: 10, y: 64, z: 10 }
-      sp2: { x: 40, y: 64, z: 40 }
-    mob-pools:
-      - mob-id: rift_soldier.yml
-        mob-type: ELITEMOBS       # VANILLA, ELITEMOBS, MYTHICMOBS
-        weight: 5
-        wave: 0                   # 0 = все волны
-      - mob-id: SKELETON
-        mob-type: VANILLA
-        model: my_model           # FMM модель (опционально)
-        weight: 3
-        wave: 0
-    bonus-waves:
-      5:
-        - mob-id: rift_boss.yml
-          mob-type: ELITEMOBS
-          weight: 1
+```bash
+mvn -DskipTests clean compile
+```
+
+### 2. Положи плагины на сервер
+
+В папку `plugins/` положи:
+
+- `voidrift-1.0.0-SNAPSHOT.jar`
+- `SopLib.jar`
+- `EliteMobs.jar`
+- `FreeMinecraftModels.jar`
+
+Важно: сейчас `SopLib`, `EliteMobs` и `FreeMinecraftModels` обязательные. Без них VoidRift не включится, потому что они указаны в `depend` внутри `plugin.yml`.
+
+Опционально, но полезно:
+
+- `SkyBound.jar` — если тестируешь как аддон к SkyBound.
+- `Vault.jar` + плагин экономики — если хочешь проверять деньги без SkyBound.
+- `PlaceholderAPI.jar` — если хочешь PAPI-плейсхолдеры.
+- `MythicMobs.jar`, `Citizens.jar`, `SopCustomBlocks.jar`, `SopItemsCreator.jar` — дополнительные интеграции.
+
+### 3. Запусти сервер
+
+После первого запуска должны появиться файлы:
+
+```text
+plugins/VoidRift/config.yml
+plugins/VoidRift/events.yml
+plugins/VoidRift/zones.yml
+plugins/VoidRift/portals.yml
+plugins/VoidRift/lang.yml
+```
+
+В консоли не должно быть ошибок включения `VoidRift`.
+
+### 4. Проверь здоровье плагина
+
+В игре или консоли:
+
+```text
+/riftadmin doctor
+```
+
+Если всё хорошо, увидишь зависимости, количество событий/зон/порталов и результат проверки. Если что-то не настроено, команда скажет что именно исправить.
+
+### 5. Быстрый путь через шаблоны
+
+Встань в центр будущей арены и выполни:
+
+```text
+/riftadmin zonetemplate waves arena1 25
+/riftadmin template waves void_waves arena1
+/riftadmin setup void_waves
+/riftadmin validate void_waves
+/riftadmin startnow void_waves
+```
+
+Что делает каждая команда:
+
+| Команда | Что делает |
+|---|---|
+| `/riftadmin zonetemplate waves arena1 25` | Создаёт зону `arena1` вокруг тебя радиусом 25 блоков. |
+| `/riftadmin template waves void_waves arena1` | Создаёт событие `void_waves` типа волны мобов. |
+| `/riftadmin setup void_waves` | Открывает мастер порталов: вход, точка телепорта, выход, возврат. |
+| `/riftadmin validate void_waves` | Проверяет, можно ли запускать событие. |
+| `/riftadmin startnow void_waves` | Мгновенно запускает событие. |
+
+Можно также вывести эти шаги прямо в игре:
+
+```text
+/riftadmin quickstart
 ```
 
 ---
 
-## 🎯 Типы целей (Objectives)
+## Минимальный тестовый сценарий игроком
 
-| Тип | Описание | target |
-|-----|----------|--------|
-| `KILL_MOBS` | Убить N мобов | тип/файл босса (пусто = любой) |
-| `KILL_BOSS` | Убить конкретного босса | файл.yml |
-| `KILL_ELITE` | Убить любого элитного моба | — |
-| `KILL_STREAK` | Убить N без смерти | — |
-| `LAST_HIT_BOSS` | Добить босса | файл.yml |
-| `DEAL_DAMAGE` | Нанести N урона | — |
-| `TAKE_DAMAGE` | Получить N урона | — |
-| `NO_DEATH` | Не умереть | amount=1 |
-| `REACH_WAVE` | Дожить до волны N | — |
-| `SURVIVE_TIME` | Выжить N секунд | — |
-| `ALL_MOBS_DEAD` | Убить всех мобов | — |
-| `CLEAR_WAVES` | Очистить N волн | — |
-| `COLLECT_ITEM` | Собрать предмет | материал |
-| `COLLECT_FROM_MOB` | Дроп с моба | материал |
-| `COLLECT_FROM_CHEST` | Из сундука | материал |
-| `MINE_BLOCK` | Сломать N блоков | тип блока |
-| `PLACE_BLOCK` | Поставить N блоков | тип блока |
-| `SCORE_POINTS` | Набрать N очков | — |
-| `ENTER_ZONE` | Войти в зону | id зоны |
-| `USE_PORTAL` | Использовать портал | id портала |
-| `TRAVEL_DISTANCE` | Пройти N блоков | — |
-| `EAT_FOOD` | Съесть N еды | тип еды |
-| `CRAFT_ITEM` | Скрафтить | предмет |
-| `USE_ITEM` | Использовать предмет | предмет |
-| `COMPLETE_BEFORE` | Успеть за N секунд | — |
-| `SPEED_KILL` | Убить босса за N сек | — |
-| `PLAYERS_IN_EVENT` | N игроков в ивенте | — |
-| `CUSTOM` | Кастомное через API | id |
+После запуска события:
+
+1. Игрок подходит к порталу входа.
+2. Его телепортирует на арену.
+3. На арене нельзя ломать/ставить блоки без права `voidrift.build`.
+4. Игрок убивает мобов/выполняет цели.
+5. Награда выдаётся после выполнения цели/ивента.
+6. Выйти из события нужно через портал выхода.
+
+Полезные команды игрока:
+
+```text
+/event
+/event list
+/event join void_waves
+/event top
+/event status
+```
 
 ---
 
-## 🔌 Интеграции
+## Команды администратора
+
+Основная команда:
+
+```text
+/riftadmin
+```
+
+Алиас:
+
+```text
+/evadmin
+```
+
+| Команда | Назначение |
+|---|---|
+| `/riftadmin doctor` | Полная проверка зависимостей, конфигов, ключей языка, событий и зон. |
+| `/riftadmin quickstart` | Показывает быстрый тестовый маршрут. |
+| `/riftadmin validate <event|all>` | Проверяет событие или все события перед запуском. |
+| `/riftadmin info [event]` | Показывает список событий/порталов или информацию по событию. |
+| `/riftadmin info zone <zone>` | Показывает подробную информацию по зоне. |
+| `/riftadmin template <type> <event> [zone]` | Создаёт готовый шаблон события. |
+| `/riftadmin zonetemplate <type> <zone> [radius]` | Создаёт готовую зону вокруг игрока. |
+| `/riftadmin createevent <id>` | Чат-мастер создания события на 12 шагов. |
+| `/riftadmin setupzone <zone>` | Мастер настройки зоны через предметы в хотбаре. |
+| `/riftadmin setup <event>` | Мастер настройки порталов через предметы в хотбаре. |
+| `/riftadmin start <event>` | Запускает событие с отсчётом. |
+| `/riftadmin startnow <event>` | Запускает событие сразу. |
+| `/riftadmin stop <event>` | Останавливает событие с отсчётом. |
+| `/riftadmin stopnow <event>` | Останавливает событие сразу. |
+| `/riftadmin reload` | Перезагружает конфиги VoidRift. |
+
+Типы шаблонов:
+
+```text
+waves, boss, resource, pvp, timed, islandwar
+```
+
+Для `zonetemplate` доступны:
+
+```text
+waves, boss, resource, pvp, timed
+```
+
+---
+
+## Команды игрока
+
+Основная команда:
+
+```text
+/event
+```
+
+Алиасы:
+
+```text
+/ev
+/events
+/rift
+```
+
+| Команда | Назначение |
+|---|---|
+| `/event` | Открыть GUI событий. |
+| `/event list` | Список событий. |
+| `/event join <event>` | Войти в событие, если доступно. |
+| `/event leave` | Выйти, если событие разрешает. В портальных событиях выход только через портал. |
+| `/event top [event]` | Таблица лидеров. |
+| `/event status` | Статус интеграций. |
+| `/event heart` | Информация по сердцу острова в Island War. |
+| `/event attack` | Меню атаки островов в Island War. |
+
+---
+
+## Права
+
+| Право | Кому | Что даёт |
+|---|---|---|
+| `voidrift.admin` | Админ | Все админ-команды. |
+| `voidrift.join` | Игрок | Участие в событиях. |
+| `voidrift.build` | Админ/строитель | Можно строить и ломать внутри арен VoidRift. |
+
+---
+
+## Что проверять при первом тесте
+
+### Обязательная проверка
+
+```text
+/riftadmin doctor
+/riftadmin validate all
+```
+
+`doctor` должен показать:
+
+- SopLib: OK
+- EliteMobs: OK
+- FreeMinecraftModels: OK
+- события загружены;
+- зоны загружены;
+- порталы настроены;
+- нет missing-ключей `lang.yml`.
+
+### Если событие не запускается
+
+Проверь:
+
+```text
+/riftadmin validate <event>
+```
+
+Частые причины:
+
+- нет зоны;
+- в зоне нет точек спавна;
+- в зоне пустой `mob-pool`;
+- не настроен портал входа;
+- не настроен портал выхода;
+- не настроена точка возврата у выхода;
+- указан EliteMobs/MythicMobs моб, которого нет;
+- нет экономики, но в наградах указаны деньги.
+
+### Если игрок не может выйти
+
+Для портальных событий это нормально: выход должен быть через портал выхода. Проверь настройку:
+
+```text
+/riftadmin info <event>
+```
+
+У события должен быть портал `exit` с `pos` и `dest`.
+
+---
+
+## Настройка через визарды
+
+### Мастер зоны
+
+```text
+/riftadmin setupzone arena1
+```
+
+Мастер использует предметы в хотбаре:
+
+1. Угол 1.
+2. Угол 2.
+3. Дополнительные прямоугольные зоны, если арена не одна ровная коробка.
+4. Точки спавна мобов.
+5. Мобы:
+   - Vanilla / FMM моб;
+   - EliteMobs босс.
+6. Максимум мобов.
+
+На арене строительство и ломание блоков запрещены для игроков события.
+
+### Мастер порталов
+
+```text
+/riftadmin setup void_waves
+```
+
+Шаги:
+
+1. Выбрать статический или динамический вход.
+2. Поставить вход.
+3. Поставить назначение входа — куда телепортирует игрока.
+4. Поставить портал выхода.
+5. Поставить точку возврата для выхода.
+6. При желании добавить промежуточные двусторонние порталы.
+
+### Мастер события
+
+```text
+/riftadmin createevent my_event
+```
+
+Он спрашивает:
+
+1. Название.
+2. Описание.
+3. Тип события.
+4. Зону.
+5. Длительность.
+6. Интервал автозапуска.
+7. Минимум игроков.
+8. Максимум игроков.
+9. Деньги.
+10. XP острова SkyBound.
+11. Сколько мобов добавлять за игрока.
+12. Подтверждение.
+
+---
+
+## Конфиги
+
+### `config.yml`
+
+Главные настройки плагина:
+
+- `max-active-events` — сколько событий может идти одновременно.
+- `arena-protection` — запрет строительства/ломания на арене.
+- `auto-start` — автозапуск событий.
+- `portal` — радиус порталов, частицы, задержки.
+- `sounds` — звуки старта, конца, порталов, целей.
+- `modifiers` — случайные модификаторы событий.
+- `display` — ActionBar, Sidebar, BossBar.
+- `rewards` — кулдаун наград.
+- `scaling` — масштабирование сложности под количество игроков.
+- `loot-chests` — случайные и боссовые сундуки.
+- `integrations` — настройки интеграций.
+
+### `events.yml`
+
+Список событий. Главное:
+
+- `display-name` — название.
+- `description` — описание.
+- `type` — тип события.
+- `zone` — ID зоны.
+- `duration-seconds` — длительность.
+- `interval-seconds` — интервал автозапуска.
+- `min-players`, `max-players` — лимиты игроков.
+- `complete-on` — `ALL` или `ANY`.
+- `objectives` — цели.
+- `rewards` — награды.
+
+### `zones.yml`
+
+Зоны/арены:
+
+- `world` — мир.
+- `areas` или `pos1/pos2` — прямоугольные области.
+- `spawn-points` — точки спавна мобов.
+- `mob-pools` — какие мобы спавнятся.
+- `bonus-waves` — дополнительные мобы на конкретных волнах.
+- `max-mobs` — лимит мобов.
+
+### `portals.yml`
+
+Порталы событий:
+
+- `entry` — вход в событие.
+- `exit` — выход из события.
+- `dynamic` — вход с несколькими возможными позициями.
+- `intermediate` — промежуточные двусторонние порталы внутри события.
+
+### `lang.yml`
+
+Все сообщения плагина. Поддерживает:
+
+- `&a`, `&l` и другие цветовые коды;
+- hex-цвета через SopLib;
+- PlaceholderAPI;
+- плейсхолдеры вида `{event}`, `{player}`, `{score}`.
+
+---
+
+## Типы событий
+
+| Тип | Что делает |
+|---|---|
+| `WAVE_SURVIVAL` | Волны мобов, выживание, зачистка волн. |
+| `BOSS_FIGHT` | Бой с боссом. |
+| `RESOURCE_RACE` | Гонка ресурсов/очков за добычу и сбор. |
+| `PVP_ARENA` | PvP-событие с очками за убийства. |
+| `TIMED_CHALLENGE` | Испытание на время. |
+| `ISLAND_WAR` | Война островов для режима SkyBound. |
+| `CUSTOM` | Кастомное событие под ручную настройку. |
+
+---
+
+## Цели событий
+
+Поддерживаемые цели:
+
+```text
+KILL_MOBS
+KILL_BOSS
+KILL_ELITE
+DEAL_DAMAGE
+TAKE_DAMAGE
+NO_DEATH
+KILL_STREAK
+LAST_HIT_BOSS
+REACH_WAVE
+SURVIVE_TIME
+ALL_MOBS_DEAD
+CLEAR_WAVES
+COLLECT_ITEM
+COLLECT_FROM_MOB
+COLLECT_FROM_CHEST
+MINE_BLOCK
+PLACE_BLOCK
+SCORE_POINTS
+USE_PORTAL
+USE_ITEM
+EAT_FOOD
+CRAFT_ITEM
+COMPLETE_BEFORE
+CUSTOM
+```
+
+Пример:
+
+```yaml
+objectives:
+  - type: KILL_MOBS
+    amount: 20
+    target: ""
+  - type: SURVIVE_TIME
+    amount: 180
+    target: ""
+```
+
+---
+
+## Интеграции
+
+### SopLib
+
+Обязательная зависимость. Используется как ядро совместимости версий и для обработки текста/цветов.
 
 ### EliteMobs
-Боссы спавнятся автоматически если указан `mob-type: ELITEMOBS` в zones.yml.
-Файлы боссов кладутся в `plugins/EliteMobs/custombosses/`.
+
+Обязательная зависимость. Для EliteMobs моба укажи:
 
 ```yaml
-mob-pools:
-  - mob-id: my_boss.yml
-    mob-type: ELITEMOBS
-    weight: 1
-    wave: 3
+mob-type: ELITEMOBS
+mob-id: my_boss.yml
+```
+
+Файлы боссов обычно лежат в:
+
+```text
+plugins/EliteMobs/custombosses/
 ```
 
 ### FreeMinecraftModels
-Модели применяются к ванильным мобам через поле `model`:
+
+Обязательная зависимость. Для модели на vanilla-мобе:
 
 ```yaml
-mob-pools:
-  - mob-id: ZOMBIE
-    mob-type: VANILLA
-    model: my_custom_model    # имя .bbmodel без расширения
-    weight: 5
-```
-
-### MythicMobs
-Аналогично EliteMobs:
-
-```yaml
-mob-pools:
-  - mob-id: MyMythicMob
-    mob-type: MYTHICMOBS
-    weight: 3
-```
-
-### PlaceholderAPI
-Все плейсхолдеры работают в любом тексте плагина (сообщения, sidebar, actionbar).
-
-**Доступные плейсхолдеры:**
-| Плейсхолдер | Значение |
-|-------------|----------|
-| `%voidrift_event%` | Название текущего ивента |
-| `%voidrift_event_id%` | ID ивента |
-| `%voidrift_time%` | Оставшееся время (m:ss) |
-| `%voidrift_score%` | Очки игрока |
-| `%voidrift_wave%` | Текущая волна |
-| `%voidrift_players%` | Игроков в ивенте |
-| `%voidrift_in_event%` | true/false |
-| `%voidrift_objective_1%` | Прогресс цели 1 (3/10) |
-| `%voidrift_objective_2%` | Прогресс цели 2 |
-| `%voidrift_active_count%` | Активных ивентов |
-| `%voidrift_top_1_name%` | Имя #1 в лидерборде |
-| `%voidrift_top_1_score%` | Очки #1 |
-
-### FlexAchievements
-При выполнении целей ивента автоматически вызывается `fireCustomEvent`:
-
-```yaml
-rewards:
-  flex-achievement: "my_achievement_id"
+mob-type: VANILLA
+mob-id: ZOMBIE
+model: my_model
 ```
 
 ### SkyBound
-В режиме аддона награды идут на остров:
 
-```yaml
-rewards:
-  money: 5000        # → банк острова
-  island-xp: 100    # → XP острова
-```
+Опционально. Если установлен, VoidRift работает как аддон:
+
+- деньги могут идти через SkyBound;
+- `island-xp` выдаётся острову;
+- доступна война островов.
 
 ### Vault
-Если SkyBound нет — деньги через Vault экономику.
 
-### SopItemsCreator / SopCustomBlocks
-Кастомные предметы и блоки в наградах через команды:
+Опционально. Если SkyBound недоступен, деньги могут выдаваться через Vault-экономику.
 
-```yaml
-rewards:
-  commands:
-    - "sopitems give {player} custom_sword 1"
+### PlaceholderAPI
+
+Опционально. Тексты проходят через PlaceholderAPI.
+
+---
+
+## Рекомендованный тестовый чеклист
+
+1. Сервер запустился без ошибок.
+2. `/riftadmin doctor` не показывает критических проблем.
+3. `/riftadmin zonetemplate waves arena1 25` создал зону.
+4. `/riftadmin template waves void_waves arena1` создал событие.
+5. `/riftadmin setup void_waves` настроил вход, назначение, выход и возврат.
+6. `/riftadmin validate void_waves` показывает OK.
+7. `/riftadmin startnow void_waves` запускает событие.
+8. Игрок входит через портал.
+9. Игрок не может ломать/ставить блоки на арене.
+10. Мобы появляются.
+11. Цели засчитываются.
+12. Награда выдаётся.
+13. Игрок выходит через портал выхода.
+14. `/riftadmin stopnow void_waves` корректно останавливает событие.
+
+---
+
+## Если что-то сломалось
+
+Сначала выполни:
+
+```text
+/riftadmin doctor
+/riftadmin validate all
 ```
 
----
+Потом смотри консоль сервера. VoidRift пишет предупреждения по отсутствующим ключам языка, проблемам конфигов и интеграциям.
 
-## 🧙 Визарды (настройка через игру)
-
-### Порталы: `/riftadmin setup <ивент>`
-1. Выбери тип входа (статический/динамический)
-2. Установи позицию входа
-3. Установи назначение (куда ТП)
-4. Установи выход
-5. Добавь промежуточные порталы (двусторонние)
-
-### Зоны: `/riftadmin setupzone <id>`
-1. Установи угол 1
-2. Установи угол 2
-3. Добавь точки спавна мобов
-4. Добавь мобов (через чат: тип, id, модель, вес)
-5. Установи макс. мобов
-
-### Ивенты: `/riftadmin createevent <id>`
-1. Введи название
-2. Выбери тип
-3. Укажи зону
-4. Длительность
-5. Макс. игроков
-6. Награда
-
-> Все визарды имеют кнопки **Skip** (пропустить) и **Back** (назад).
+Если менял `lang.yml` и видишь `[Missing lang: ...]`, значит в языке нет нужного ключа.
 
 ---
 
-## 🎁 Лут-сундуки
+## Статус
 
-### Рандомные
-Спавнятся при старте ивента в случайных местах зоны. Стоят пока не заберут.
+Проект сейчас в стадии активного тестирования. Перед релизом нужно прогнать реальные сценарии на сервере:
 
-### Боссовые
-Появляются после убийства босса. 4 режима:
+- standalone без SkyBound;
+- addon-режим со SkyBound;
+- волны;
+- босс;
+- resource race;
+- PvP arena;
+- timed challenge;
+- Island War.
 
-| Режим | Описание |
-|-------|----------|
-| `CHEST` | Сундук на месте смерти |
-| `DROP` | Предметы на землю |
-| `KILLER` | В инвентарь убившему |
-| `TOP_DAMAGE` | Тому кто нанёс больше урона |
-
----
-
-## 📊 Отображение
-
-- **ActionBar** — название ивента, время, очки, прогресс цели
-- **Sidebar** — панель справа с целями и прогрессом
-- **BossBar** — полоска сверху с таймером
-
-Всё отключается в `config.yml` → `display`.
-
----
-
-## 🌐 Мультиязычность
-
-Все сообщения в `lang.yml`. Поддерживает:
-- Цветовые коды (`&a`, `&l`)
-- Hex цвета (`&#FF5555`) через SopLib
-- PlaceholderAPI в любом тексте
-- Плагины смены языка
-
----
-
-## 📄 Лицензия
-
-Проприетарный. © Reil

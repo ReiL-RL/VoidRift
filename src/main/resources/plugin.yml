@@ -4,8 +4,8 @@ main: me.reil.voidrift.VoidRiftPlugin
 api-version: 1.16
 author: Reil
 description: Event system - standalone or SkyBound addon. Zones, waves, portals, rewards.
-softdepend: [SkyBound, EliteMobs, FreeMinecraftModels, MythicMobs, Citizens, Vault, PlaceholderAPI, SopCustomBlocks, SopItemsCreator]
-depend: [SopLib]
+depend: [SopLib, EliteMobs, FreeMinecraftModels]
+softdepend: [SkyBound, MythicMobs, Citizens, Vault, PlaceholderAPI, SopCustomBlocks, SopItemsCreator]
 commands:
   event:
     description: Event management command
@@ -22,3 +22,6 @@ permissions:
   voidrift.join:
     description: Join events
     default: true
+  voidrift.build:
+    description: Allows building and breaking blocks inside VoidRift arenas
+    default: op

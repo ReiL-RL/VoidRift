@@ -10,7 +10,10 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Manages localized messages from lang.yml.
@@ -23,6 +26,7 @@ public final class LangManager {
     private FileConfiguration langConfig;
     private boolean papiAvailable;
     private Method setPlaceholdersMethod;
+    private final Set<String> missingKeys = new HashSet<String>();
 
     public LangManager(VoidRiftPlugin plugin) {
         this.plugin = plugin;
@@ -36,6 +40,7 @@ public final class LangManager {
             plugin.saveResource("lang.yml", false);
         }
         langConfig = YamlConfiguration.loadConfiguration(file);
+        missingKeys.clear();
     }
 
     private void initPapi() {
@@ -71,7 +76,7 @@ public final class LangManager {
      */
     public String msg(String key) {
         String raw = langConfig.getString(key);
-        if (raw == null) return ChatColor.RED + "[Missing: " + key + "]";
+        if (raw == null) return missing(key);
         return color(raw);
     }
 
@@ -80,13 +85,28 @@ public final class LangManager {
      */
     public String msg(String key, Map<String, String> placeholders) {
         String raw = langConfig.getString(key);
-        if (raw == null) return ChatColor.RED + "[Missing: " + key + "]";
+        if (raw == null) return missing(key);
         if (placeholders != null) {
             for (Map.Entry<String, String> entry : placeholders.entrySet()) {
                 raw = raw.replace("{" + entry.getKey() + "}", entry.getValue());
             }
         }
         return color(raw);
+    }
+
+    public boolean has(String key) {
+        return langConfig != null && langConfig.isSet(key);
+    }
+
+    public Set<String> getMissingKeys() {
+        return Collections.unmodifiableSet(missingKeys);
+    }
+
+    private String missing(String key) {
+        if (missingKeys.add(key)) {
+            plugin.getLogger().warning("Missing lang key: " + key);
+        }
+        return ChatColor.RED + "[Missing lang: " + key + "]";
     }
 
     /**

@@ -56,6 +56,11 @@ public final class ObjectiveTracker {
         return map.get(playerId);
     }
 
+    public boolean hasCompleted(String eventId, UUID playerId) {
+        Set<UUID> completed = completedPlayers.get(eventId);
+        return completed != null && completed.contains(playerId);
+    }
+
     // === Progress reporters ===
 
     public void onMobKill(String eventId, UUID playerId, String mobType, String bossFile) {

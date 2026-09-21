@@ -24,8 +24,9 @@ import java.util.UUID;
  * 3. Set destination (event location)
  * 3.5. Add dynamic spawn points (if dynamic)
  * 4. Set exit position
- * 5. Add intermediate portals (bidirectional, auto-id)
- * 6. Done
+ * 5. Set return position
+ * 6. Add intermediate portals (bidirectional, auto-id)
+ * 7. Done
  *
  * Hotbar layout per step:
  *  slot 0 = primary action (confirm / add)
@@ -46,7 +47,7 @@ public final class SetupWizard {
     // ===== Public API =====
 
     public void start(Player player, String eventId) {
-        WizardSession session = new WizardSession(eventId, WizardStep.CHOOSE_TYPE);
+        WizardSession session = new WizardSession(eventId, WizardStep.CHOOSE_TYPE, player.getLocation());
         sessions.put(player.getUniqueId(), session);
 
         clearHotbar(player);
@@ -88,6 +89,8 @@ public final class SetupWizard {
                 return handleAddDynamic(player, session, slot);
             case SET_EXIT:
                 return handleSetExit(player, session, slot);
+            case SET_RETURN:
+                return handleSetReturn(player, session, slot);
             case ADD_INTERMEDIATE:
                 return handleAddIntermediate(player, session, slot);
             default:
@@ -125,7 +128,9 @@ public final class SetupWizard {
     private boolean handleSetEntry(Player player, WizardSession session, int slot) {
         if (slot == 0) {
             plugin.getPortalManager().createPortal(session.getEventId(), "entry", session.getEntryType());
-            plugin.getPortalManager().setPortalLocation(session.getEventId(), "entry", player.getLocation());
+            Location entry = player.getLocation();
+            session.setEntryLocation(entry);
+            plugin.getPortalManager().setPortalLocation(session.getEventId(), "entry", entry);
             player.sendMessage(plugin.getLang().msg("messages.wizard.entry-set"));
             session.setStep(WizardStep.SET_DEST);
             refreshStep(player, session);
@@ -172,21 +177,36 @@ public final class SetupWizard {
             plugin.getPortalManager().createPortal(session.getEventId(), "exit", PortalType.EXIT);
             plugin.getPortalManager().setPortalLocation(session.getEventId(), "exit", player.getLocation());
             player.sendMessage(plugin.getLang().msg("messages.wizard.exit-set"));
-            // Move to intermediate portals step
-            session.setStep(WizardStep.ADD_INTERMEDIATE);
+            session.setStep(WizardStep.SET_RETURN);
             refreshStep(player, session);
-
-            Map<String, String> v = new HashMap<String, String>();
-            v.put("event", session.getEventId());
-
-            player.sendMessage("");
-            player.sendMessage(plugin.getLang().msg("messages.wizard.step5-intermediate"));
-            player.sendMessage(plugin.getLang().msg("messages.wizard.step5-hint-a"));
-            player.sendMessage(plugin.getLang().msg("messages.wizard.step5-hint-b"));
-            player.sendMessage(plugin.getLang().msg("messages.wizard.step5-hint-done"));
-            player.sendMessage(plugin.getLang().msg("messages.wizard.step5-ids", v));
+            player.sendMessage(ChatColor.YELLOW + "Шаг 5: Встань там, куда игрок вернётся после выхода, и нажми ПКМ зелёным блоком.");
+            player.sendMessage(ChatColor.GRAY + "Обычно это точка рядом с входным порталом/спавном.");
         }
         return true;
+    }
+
+    private boolean handleSetReturn(Player player, WizardSession session, int slot) {
+        if (slot == 0) {
+            plugin.getPortalManager().setPortalDestination(session.getEventId(), "exit", player.getLocation());
+            player.sendMessage(plugin.getLang().msg("messages.admin-portal.return-set"));
+            moveToIntermediateStep(player, session);
+        }
+        return true;
+    }
+
+    private void moveToIntermediateStep(Player player, WizardSession session) {
+        session.setStep(WizardStep.ADD_INTERMEDIATE);
+        refreshStep(player, session);
+
+        Map<String, String> v = new HashMap<String, String>();
+        v.put("event", session.getEventId());
+
+        player.sendMessage("");
+        player.sendMessage(plugin.getLang().msg("messages.wizard.step5-intermediate"));
+        player.sendMessage(plugin.getLang().msg("messages.wizard.step5-hint-a"));
+        player.sendMessage(plugin.getLang().msg("messages.wizard.step5-hint-b"));
+        player.sendMessage(plugin.getLang().msg("messages.wizard.step5-hint-done"));
+        player.sendMessage(plugin.getLang().msg("messages.wizard.step5-ids", v));
     }
 
     private boolean handleAddIntermediate(Player player, WizardSession session, int slot) {
@@ -251,29 +271,49 @@ public final class SetupWizard {
         switch (session.getStep()) {
             case CHOOSE_TYPE:
                 session.setEntryType(PortalType.ENTRY);
-                session.setStep(WizardStep.SET_EXIT);
+                session.setStep(WizardStep.SET_ENTRY);
                 refreshStep(player, session);
                 player.sendMessage(plugin.getLang().msg("messages.wizard.skip-type"));
                 return;
             case SET_ENTRY:
+                plugin.getPortalManager().createPortal(session.getEventId(), "entry", session.getEntryType());
+                session.setEntryLocation(player.getLocation());
+                plugin.getPortalManager().setPortalLocation(session.getEventId(), "entry", player.getLocation());
                 session.setStep(WizardStep.SET_DEST);
                 refreshStep(player, session);
                 player.sendMessage(plugin.getLang().msg("messages.wizard.skip-entry"));
+                player.sendMessage(ChatColor.GRAY + "Использую текущую позицию как вход.");
                 return;
             case SET_DEST:
+                plugin.getPortalManager().createPortal(session.getEventId(), "entry", session.getEntryType());
+                plugin.getPortalManager().setPortalDestination(session.getEventId(), "entry", player.getLocation());
                 session.setStep(WizardStep.SET_EXIT);
                 refreshStep(player, session);
                 player.sendMessage(plugin.getLang().msg("messages.wizard.skip-dest"));
+                player.sendMessage(ChatColor.GRAY + "Использую текущую позицию как точку телепорта в событие.");
                 return;
             case ADD_DYNAMIC_POS:
+                if (session.getDynamicCount() <= 0) {
+                    plugin.getPortalManager().addDynamicLocation(session.getEventId(), "entry", player.getLocation());
+                    session.incrementDynamicCount();
+                    player.sendMessage(ChatColor.GRAY + "Добавил текущую позицию как динамическую точку входа.");
+                }
                 session.setStep(WizardStep.SET_EXIT);
                 refreshStep(player, session);
                 player.sendMessage(plugin.getLang().msg("messages.wizard.skip-dynamic"));
                 return;
             case SET_EXIT:
-                session.setStep(WizardStep.ADD_INTERMEDIATE);
+                plugin.getPortalManager().createPortal(session.getEventId(), "exit", PortalType.EXIT);
+                plugin.getPortalManager().setPortalLocation(session.getEventId(), "exit", player.getLocation());
+                session.setStep(WizardStep.SET_RETURN);
                 refreshStep(player, session);
                 player.sendMessage(plugin.getLang().msg("messages.wizard.skip-exit"));
+                player.sendMessage(ChatColor.GRAY + "Использую текущую позицию как выход из события.");
+                return;
+            case SET_RETURN:
+                setDefaultReturn(player, session);
+                moveToIntermediateStep(player, session);
+                player.sendMessage(ChatColor.YELLOW + "▶ Точка возврата пропущена. Использую безопасную точку по умолчанию.");
                 return;
             case ADD_INTERMEDIATE:
                 finishWizard(player, session);
@@ -332,6 +372,7 @@ public final class SetupWizard {
             case SET_ENTRY:
             case SET_DEST:
             case SET_EXIT:
+            case SET_RETURN:
                 player.getInventory().setItem(0, makeItem(Material.LIME_CONCRETE, plugin.getLang().msg("messages.wizard.btn-confirm")));
                 player.getInventory().setItem(6, makeItem(Material.ORANGE_CONCRETE, plugin.getLang().msg("messages.wizard.btn-skip")));
                 player.getInventory().setItem(7, makeItem(Material.GRAY_CONCRETE, plugin.getLang().msg("messages.wizard.btn-back")));
@@ -380,8 +421,16 @@ public final class SetupWizard {
             case SET_DEST: return plugin.getLang().msg("messages.wizard.step-dest");
             case ADD_DYNAMIC_POS: return plugin.getLang().msg("messages.wizard.step-dynamic-pos");
             case SET_EXIT: return plugin.getLang().msg("messages.wizard.step-exit");
+            case SET_RETURN: return "Возврат";
             case ADD_INTERMEDIATE: return plugin.getLang().msg("messages.wizard.step-intermediate");
             default: return step.name();
         }
+    }
+
+    private void setDefaultReturn(Player player, WizardSession session) {
+        Location fallback = session.getEntryLocation();
+        if (fallback == null) fallback = session.getStartLocation();
+        if (fallback == null) fallback = player.getLocation();
+        plugin.getPortalManager().setPortalDestination(session.getEventId(), "exit", fallback);
     }
 }

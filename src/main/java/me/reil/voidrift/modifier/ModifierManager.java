@@ -2,8 +2,11 @@ package me.reil.voidrift.modifier;
 
 import me.reil.voidrift.VoidRiftPlugin;
 import me.reil.voidrift.event.ActiveEvent;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,7 +75,7 @@ public final class ModifierManager {
         for (EventModifier mod : modifiers) {
             switch (mod) {
                 case HALF_HEALTH:
-                    double maxHealth = player.getMaxHealth();
+                    double maxHealth = getMaxHealth(player);
                     if (player.getHealth() > maxHealth / 2.0) {
                         player.setHealth(maxHealth / 2.0);
                     }
@@ -82,18 +85,26 @@ public final class ModifierManager {
                 case DARKNESS:
                 case SLOW_MOBS:
                     if (mod.hasPotionEffect()) {
-                        player.addPotionEffect(new PotionEffect(mod.getPotionEffect(), duration, mod.getAmplifier(), true, false), true);
+                        player.addPotionEffect(new PotionEffect(mod.getPotionEffect(), duration, mod.getAmplifier(), true, false));
                     }
                     break;
                 case NO_REGEN:
                     // Remove regen and prevent natural regen via potion
-                    player.addPotionEffect(new PotionEffect(org.bukkit.potion.PotionEffectType.WITHER, duration, 0, true, false), true);
+                    PotionEffectType wither = PotionEffectType.getByName("WITHER");
+                    if (wither != null) {
+                        player.addPotionEffect(new PotionEffect(wither, duration, 0, true, false));
+                    }
                     break;
                 default:
                     // DOUBLE_LOOT, EXTRA_MOBS are checked as flags, not potion effects
                     break;
             }
         }
+    }
+
+    private double getMaxHealth(Player player) {
+        AttributeInstance attribute = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        return attribute != null ? attribute.getValue() : 20.0;
     }
 
     /**

@@ -78,6 +78,32 @@ public final class ZoneManager {
             Location pos2 = deserializeLoc(world, zs.getConfigurationSection("pos2"));
             int maxMobs = zs.getInt("max-mobs", 20);
 
+            List<ZoneDefinition.Area> areas = new ArrayList<ZoneDefinition.Area>();
+            ConfigurationSection areasSection = zs.getConfigurationSection("areas");
+            if (areasSection != null) {
+                for (String areaId : areasSection.getKeys(false)) {
+                    ConfigurationSection areaSection = areasSection.getConfigurationSection(areaId);
+                    if (areaSection == null) continue;
+                    Location aPos1 = deserializeLoc(world, areaSection.getConfigurationSection("pos1"));
+                    Location aPos2 = deserializeLoc(world, areaSection.getConfigurationSection("pos2"));
+                    if (aPos1 != null && aPos2 != null) {
+                        areas.add(new ZoneDefinition.Area(areaId, aPos1, aPos2));
+                    }
+                }
+            }
+            if (areas.isEmpty() && pos1 != null && pos2 != null) {
+                areas.add(new ZoneDefinition.Area("area1", pos1, pos2));
+            }
+
+            List<Location> boundaryPoints = new ArrayList<Location>();
+            ConfigurationSection boundarySection = zs.getConfigurationSection("boundary-points");
+            if (boundarySection != null) {
+                for (String pointName : boundarySection.getKeys(false)) {
+                    Location loc = deserializeLoc(world, boundarySection.getConfigurationSection(pointName));
+                    if (loc != null) boundaryPoints.add(loc);
+                }
+            }
+
             List<ZoneDefinition.SpawnPoint> spawnPoints = new ArrayList<ZoneDefinition.SpawnPoint>();
             ConfigurationSection spSection = zs.getConfigurationSection("spawn-points");
             if (spSection != null) {
@@ -90,11 +116,11 @@ public final class ZoneManager {
             List<ZoneDefinition.MobPool> mobPools = new ArrayList<ZoneDefinition.MobPool>();
             List<Map<?, ?>> poolList = zs.getMapList("mob-pools");
             for (Map<?, ?> poolMap : poolList) {
-                String mobId = String.valueOf(poolMap.get("mob-id"));
-                String mobType = poolMap.containsKey("mob-type") ? String.valueOf(poolMap.get("mob-type")) : "VANILLA";
-                String modelId = poolMap.containsKey("model") ? String.valueOf(poolMap.get("model")) : null;
-                int weight = poolMap.containsKey("weight") ? Integer.parseInt(String.valueOf(poolMap.get("weight"))) : 1;
-                int wave = poolMap.containsKey("wave") ? Integer.parseInt(String.valueOf(poolMap.get("wave"))) : 0;
+                String mobId = readString(poolMap, "mob-id", "ZOMBIE");
+                String mobType = readString(poolMap, "mob-type", "VANILLA");
+                String modelId = readNullableString(poolMap, "model");
+                int weight = readInt(poolMap, "weight", 1);
+                int wave = readInt(poolMap, "wave", 0);
                 mobPools.add(new ZoneDefinition.MobPool(mobId, mobType, modelId, weight, wave));
             }
 
@@ -109,10 +135,10 @@ public final class ZoneManager {
                     List<ZoneDefinition.MobPool> bonusMobs = new ArrayList<ZoneDefinition.MobPool>();
                     List<Map<?, ?>> bonusList = bwSection.getMapList(waveKey);
                     for (Map<?, ?> bm : bonusList) {
-                        String bMobId = String.valueOf(bm.get("mob-id"));
-                        String bMobType = bm.containsKey("mob-type") ? String.valueOf(bm.get("mob-type")) : "VANILLA";
-                        String bModelId = bm.containsKey("model") ? String.valueOf(bm.get("model")) : null;
-                        int bCount = bm.containsKey("count") ? Integer.parseInt(String.valueOf(bm.get("count"))) : 1;
+                        String bMobId = readString(bm, "mob-id", "ZOMBIE");
+                        String bMobType = readString(bm, "mob-type", "VANILLA");
+                        String bModelId = readNullableString(bm, "model");
+                        int bCount = readInt(bm, "count", 1);
                         // Use count as weight for bonus waves (count field determines how many to spawn)
                         bonusMobs.add(new ZoneDefinition.MobPool(bMobId, bMobType, bModelId, bCount, waveNum));
                     }
@@ -120,10 +146,35 @@ public final class ZoneManager {
                 }
             }
 
-            zones.put(id, new ZoneDefinition(id, world, pos1, pos2, spawnPoints, mobPools, bonusWaves, maxMobs));
+            zones.put(id, new ZoneDefinition(id, world, pos1, pos2, areas, boundaryPoints, spawnPoints, mobPools, bonusWaves, maxMobs));
         }
 
         plugin.getLogger().info("Loaded " + zones.size() + " event zones.");
+    }
+
+    private String readString(Map<?, ?> map, String key, String def) {
+        Object value = map.get(key);
+        if (value == null) return def;
+        String str = String.valueOf(value).trim();
+        return str.isEmpty() || "null".equalsIgnoreCase(str) ? def : str;
+    }
+
+    private String readNullableString(Map<?, ?> map, String key) {
+        Object value = map.get(key);
+        if (value == null) return null;
+        String str = String.valueOf(value).trim();
+        return str.isEmpty() || "null".equalsIgnoreCase(str) ? null : str;
+    }
+
+    private int readInt(Map<?, ?> map, String key, int def) {
+        Object value = map.get(key);
+        if (value == null) return def;
+        if (value instanceof Number) return ((Number) value).intValue();
+        try {
+            return (int) Double.parseDouble(String.valueOf(value).trim());
+        } catch (Exception ignored) {
+            return def;
+        }
     }
 
     private Location deserializeLoc(String worldName, ConfigurationSection section) {
@@ -131,6 +182,13 @@ public final class ZoneManager {
         World world = Bukkit.getWorld(worldName);
         return new Location(world, section.getDouble("x"), section.getDouble("y"), section.getDouble("z"),
                 (float) section.getDouble("yaw", 0), (float) section.getDouble("pitch", 0));
+    }
+
+    public ZoneDefinition getZoneAt(Location location) {
+        for (ZoneDefinition zone : zones.values()) {
+            if (zone.isInside(location)) return zone;
+        }
+        return null;
     }
 }
 

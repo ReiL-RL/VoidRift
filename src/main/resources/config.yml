@@ -2,6 +2,16 @@
 language: ru
 max-active-events: 3
 
+arena-protection:
+  # Главный переключатель защиты строительства.
+  block-build: true
+  # Запрещает участникам активного ивента строить/ломать где угодно,
+  # пока они находятся в событии или числятся участниками события.
+  block-event-players-everywhere: true
+  # Защищает сами зоны/арены VoidRift от строительства даже для посторонних игроков.
+  block-arena-zones: true
+  # Игроки с правом voidrift.build обходят эти ограничения.
+
 auto-start:
   enabled: true
 
@@ -100,3 +110,16 @@ integrations:
     enabled: true
   sopitems:
     enabled: true
+
+# === Война островов ===
+island-war:
+  heart:
+    custom-block-id: "island_heart"   # ID блока в SopCustomBlocks
+    hp: 100                           # сколько ударов нужно чтобы сломать
+    offset-y: 1                       # смещение от центра острова по Y
+  rewards:
+    money-percent: 10.0               # % денег из банка жертвы → атакующему
+    xp-percent: 3                     # % опыта острова жертвы → атакующему
+    prestige-transfer: 1              # уровней престижа передаётся за убийство
+  teleport:
+    spawn-distance: 25                # на каком расстоянии от центра спавнится атакующий
