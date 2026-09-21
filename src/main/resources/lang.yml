@@ -22,7 +22,7 @@ messages:
     ending: "&6✦ {event} &6завершается через 10 секунд..."
     ended: "&6✦ {event} &6завершено!"
     ended-portals: "&6✦ {event} &6завершено! Порталы закрыты."
-    starting-soon: "&d✦ Событие &e{event} &dначнётся через &e{seconds}с&d."
+    starting-soon: "&d✦ Событие &e{event} &dначнётся через &e{time}&d."
     ending-subtitle: "&eВозвращение через портал..."
     completed-subtitle: "&aЦель события выполнена!"
     portal-open-subtitle: "&eПортал открыт — заходи!"

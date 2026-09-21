@@ -17,6 +17,12 @@ auto-start:
 
 portal:
   preview-seconds: 10
+  labels:
+    # Показывает название активного события над входным/динамическим порталом.
+    enabled: true
+    # Доступные плейсхолдеры: {event}, {id}
+    format: "&d✦ {event}"
+    offset-y: 2.4
   particles:
     entry: PORTAL
     exit: REVERSE_PORTAL

@@ -404,6 +404,7 @@ public final class EventWizard {
         String path = "events." + session.eventId;
         cfg.set(path + ".display-name", session.displayName);
         cfg.set(path + ".description", session.description);
+        cfg.set(path + ".enabled", true);
         cfg.set(path + ".type", session.type.name());
         cfg.set(path + ".zone", session.zoneId == null ? "" : session.zoneId);
         cfg.set(path + ".duration-seconds", session.durationSeconds);
@@ -412,6 +413,10 @@ public final class EventWizard {
         cfg.set(path + ".max-players", session.maxPlayers);
         cfg.set(path + ".scale-mobs-per-player", session.scaleMobsPerPlayer);
         cfg.set(path + ".schedule", "INTERVAL");
+        cfg.set(path + ".announcements.enabled", true);
+        cfg.set(path + ".announcements.warning-seconds", java.util.Arrays.asList(Integer.valueOf(300), Integer.valueOf(60), Integer.valueOf(10)));
+        cfg.set(path + ".preview.enabled", true);
+        cfg.set(path + ".preview.seconds", 10);
         cfg.set(path + ".complete-on", defaultCompleteOn(session.type));
         cfg.set(path + ".objectives", defaultObjectives(session));
         cfg.set(path + ".rewards.money", session.rewardMoney);

@@ -3,6 +3,9 @@
 # type: WAVE_SURVIVAL, BOSS_FIGHT, RESOURCE_RACE, CUSTOM
 # zone: ссылка на зону из zones.yml
 # rewards: деньги, XP острова (SkyBound), команды
+# enabled: включает/отключает событие полностью
+# announcements.warning-seconds: предупреждения до автозапуска, например [300, 60, 10]
+# preview.seconds: короткий отсчёт перед фактическим стартом
 #
 # Интеграции (опциональные):
 #   EliteMobs — боссы спавнятся если плагин есть, иначе fallback на ванильных мобов
@@ -12,10 +15,17 @@ events:
   rift_assault:
     display-name: "&5✦ Штурм Разлома"
     description: "Выживи против волн мобов из разлома!"
+    enabled: true
     type: WAVE_SURVIVAL
     zone: "rift_zone"
     duration-seconds: 300
     interval-seconds: 1800
+    announcements:
+      enabled: true
+      warning-seconds: [300, 60, 10]
+    preview:
+      enabled: true
+      seconds: 10
     min-players: 1
     max-players: 10
     scale-mobs-per-player: 2
@@ -39,6 +49,7 @@ events:
   crystal_boss:
     display-name: "&b✦ Кристальный Босс"
     description: "Убей Кристального Смотрителя!"
+    enabled: true
     type: BOSS_FIGHT
     zone: "crystal_arena"
     duration-seconds: 180
@@ -55,6 +66,7 @@ events:
   mining_race:
     display-name: "&e✦ Гонка Шахтёров"
     description: "Добудь больше всех ресурсов за время!"
+    enabled: true
     type: RESOURCE_RACE
     zone: "mining_zone"
     duration-seconds: 120
@@ -70,6 +82,7 @@ events:
   test_integration:
     display-name: "&a✦ Тест Интеграций"
     description: "Тестовый ивент: EM боссы + FMM модели"
+    enabled: true
     type: WAVE_SURVIVAL
     zone: "test_zone"
     duration-seconds: 120
@@ -85,6 +98,7 @@ events:
   island_war:
     display-name: "&5&l✦ Война островов"
     description: "Уничтожь сердца чужих островов и забери их престиж!"
+    enabled: true
     type: ISLAND_WAR
     zone: ""
     duration-seconds: 1800       # 30 минут

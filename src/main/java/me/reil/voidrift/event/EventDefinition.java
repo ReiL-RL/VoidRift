@@ -27,6 +27,11 @@ public final class EventDefinition {
     private final boolean completeOnAll;
     private final String flexAchievement;
     private final int scaleMobsPerPlayer;
+    private boolean enabled;
+    private boolean previewEnabled;
+    private int previewSeconds;
+    private boolean announcementsEnabled;
+    private List<Integer> warningSeconds;
     private List<QuestStage> questChain;
     private String schedule;       // DAILY, WEEKLY, INTERVAL (default)
     private String scheduleTime;   // "18:00"
@@ -54,6 +59,11 @@ public final class EventDefinition {
         this.completeOnAll = completeOnAll;
         this.flexAchievement = flexAchievement;
         this.scaleMobsPerPlayer = scaleMobsPerPlayer;
+        this.enabled = true;
+        this.previewEnabled = true;
+        this.previewSeconds = -1;
+        this.announcementsEnabled = true;
+        this.warningSeconds = Collections.emptyList();
         this.questChain = Collections.emptyList();
         this.schedule = "INTERVAL";
         this.scheduleTime = null;
@@ -76,6 +86,18 @@ public final class EventDefinition {
     public boolean isCompleteOnAll() { return completeOnAll; }
     public String getFlexAchievement() { return flexAchievement; }
     public int getScaleMobsPerPlayer() { return scaleMobsPerPlayer; }
+    public boolean isEnabled() { return enabled; }
+    public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    public boolean isPreviewEnabled() { return previewEnabled; }
+    public void setPreviewEnabled(boolean previewEnabled) { this.previewEnabled = previewEnabled; }
+    public int getPreviewSeconds() { return previewSeconds; }
+    public void setPreviewSeconds(int previewSeconds) { this.previewSeconds = previewSeconds; }
+    public boolean isAnnouncementsEnabled() { return announcementsEnabled; }
+    public void setAnnouncementsEnabled(boolean announcementsEnabled) { this.announcementsEnabled = announcementsEnabled; }
+    public List<Integer> getWarningSeconds() { return warningSeconds; }
+    public void setWarningSeconds(List<Integer> warningSeconds) {
+        this.warningSeconds = warningSeconds != null ? warningSeconds : Collections.<Integer>emptyList();
+    }
     public List<QuestStage> getQuestChain() { return questChain; }
     public void setQuestChain(List<QuestStage> questChain) { this.questChain = questChain != null ? questChain : Collections.<QuestStage>emptyList(); }
     public boolean hasQuestChain() { return questChain != null && !questChain.isEmpty(); }

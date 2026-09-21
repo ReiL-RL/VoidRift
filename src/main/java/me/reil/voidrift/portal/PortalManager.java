@@ -9,6 +9,8 @@ import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -41,6 +43,7 @@ public final class PortalManager {
     private final Set<String> activeEventIds = new HashSet<String>();
     private final Map<UUID, Location> returnLocations = new LinkedHashMap<UUID, Location>();
     private final Map<UUID, String> playerEventIds = new LinkedHashMap<UUID, String>();
+    private final Map<String, List<ArmorStand>> portalLabels = new LinkedHashMap<String, List<ArmorStand>>();
     private final Set<UUID> playersInEvent = new HashSet<UUID>();
     private BukkitTask ambientTask;
 
@@ -71,6 +74,7 @@ public final class PortalManager {
             Location loc = portal.getActiveLocation();
             if (loc != null && loc.getWorld() != null) {
                 loc.getWorld().playSound(loc, Sound.BLOCK_PORTAL_TRIGGER, 1.0f, 1.5f);
+                spawnPortalLabel(eventId, portal, loc);
                 plugin.getLogger().info("Portal " + portal.getId() + " activated at " + (int)loc.getX() + "," + (int)loc.getY() + "," + (int)loc.getZ());
             } else {
                 plugin.getLogger().warning("Portal " + portal.getId() + " has no location set!");
@@ -80,6 +84,7 @@ public final class PortalManager {
 
     public void destroyPortal(String eventId) {
         activeEventIds.remove(eventId);
+        removePortalLabels(eventId);
         List<PortalDefinition> portals = eventPortals.get(eventId);
         if (portals != null) {
             for (PortalDefinition portal : portals) {
@@ -349,6 +354,9 @@ public final class PortalManager {
 
     public void shutdown() {
         if (ambientTask != null) ambientTask.cancel();
+        for (String eventId : new ArrayList<String>(portalLabels.keySet())) {
+            removePortalLabels(eventId);
+        }
         // Return everyone
         for (UUID playerId : new ArrayList<UUID>(playersInEvent)) {
             Player player = Bukkit.getPlayer(playerId);
@@ -419,6 +427,53 @@ public final class PortalManager {
 
     private void setCooldown(UUID playerId) {
         teleportCooldowns.put(playerId, System.currentTimeMillis());
+    }
+
+    private void spawnPortalLabel(String eventId, PortalDefinition portal, Location base) {
+        if (!plugin.getConfig().getBoolean("portal.labels.enabled", true)) return;
+        if (portal.getType() != PortalType.ENTRY && portal.getType() != PortalType.DYNAMIC) return;
+
+        String name = eventId;
+        try {
+            me.reil.voidrift.VoidRiftPlugin vr = (me.reil.voidrift.VoidRiftPlugin) plugin;
+            me.reil.voidrift.event.EventDefinition def = vr.getEventManager().getDefinition(eventId);
+            if (def != null) name = def.getDisplayName();
+        } catch (Exception ignored) {}
+
+        String format = plugin.getConfig().getString("portal.labels.format", "&d✦ {event}");
+        double offsetY = plugin.getConfig().getDouble("portal.labels.offset-y", 2.4);
+        Location labelLoc = base.clone().add(0.0, offsetY, 0.0);
+        ArmorStand stand = (ArmorStand) labelLoc.getWorld().spawnEntity(labelLoc, EntityType.ARMOR_STAND);
+        stand.setVisible(false);
+        stand.setGravity(false);
+        stand.setSmall(true);
+        stand.setCustomNameVisible(true);
+        try {
+            stand.setMarker(true);
+        } catch (NoSuchMethodError ignored) {}
+        try {
+            me.reil.voidrift.VoidRiftPlugin vr = (me.reil.voidrift.VoidRiftPlugin) plugin;
+            stand.setCustomName(vr.getLang().color(format.replace("{event}", name).replace("{id}", eventId)));
+        } catch (Exception e) {
+            stand.setCustomName(format.replace("{event}", name).replace("{id}", eventId));
+        }
+
+        List<ArmorStand> list = portalLabels.get(eventId);
+        if (list == null) {
+            list = new ArrayList<ArmorStand>();
+            portalLabels.put(eventId, list);
+        }
+        list.add(stand);
+    }
+
+    private void removePortalLabels(String eventId) {
+        List<ArmorStand> labels = portalLabels.remove(eventId);
+        if (labels == null) return;
+        for (ArmorStand stand : labels) {
+            if (stand != null && !stand.isDead()) {
+                stand.remove();
+            }
+        }
     }
 
     // === Config loading ===

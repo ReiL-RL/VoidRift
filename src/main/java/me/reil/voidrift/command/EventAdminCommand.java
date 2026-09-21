@@ -99,6 +99,11 @@ public final class EventAdminCommand implements CommandExecutor, TabCompleter {
                 handleDoctor(sender);
                 break;
             case "validate":
+            case "valid":
+            case "val":
+            case "check":
+            case "проверить":
+            case "валидате":
                 handleValidate(sender, args);
                 break;
             case "template":
@@ -695,6 +700,9 @@ public final class EventAdminCommand implements CommandExecutor, TabCompleter {
 
     private List<String> collectEventIssues(me.reil.voidrift.event.EventDefinition def, boolean includePortals) {
         List<String> issues = new ArrayList<String>();
+        if (!def.isEnabled()) {
+            issues.add("event is disabled (events.yml enabled: false)");
+        }
         issues.addAll(plugin.getEventManager().validateEvent(def));
         issues.addAll(validateObjectives(def));
         issues.addAll(validateRewards(def));
@@ -1009,6 +1017,7 @@ public final class EventAdminCommand implements CommandExecutor, TabCompleter {
 
         cfg.set(path + ".display-name", templateDisplayName(template));
         cfg.set(path + ".description", templateDescription(template));
+        cfg.set(path + ".enabled", true);
         cfg.set(path + ".type", templateType(template));
         cfg.set(path + ".zone", "islandwar".equals(template) ? "" : zoneId);
         cfg.set(path + ".duration-seconds", templateDuration(template));
@@ -1017,6 +1026,10 @@ public final class EventAdminCommand implements CommandExecutor, TabCompleter {
         cfg.set(path + ".max-players", templateMaxPlayers(template));
         cfg.set(path + ".scale-mobs-per-player", templateScaleMobs(template));
         cfg.set(path + ".schedule", "INTERVAL");
+        cfg.set(path + ".announcements.enabled", true);
+        cfg.set(path + ".announcements.warning-seconds", Arrays.asList(Integer.valueOf(300), Integer.valueOf(60), Integer.valueOf(10)));
+        cfg.set(path + ".preview.enabled", true);
+        cfg.set(path + ".preview.seconds", 10);
         cfg.set(path + ".complete-on", templateCompleteOn(template));
         cfg.set(path + ".objectives", templateObjectives(template));
         cfg.set(path + ".rewards.money", templateMoney(template));
@@ -1385,12 +1398,12 @@ public final class EventAdminCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) return filter(Arrays.asList("start", "startnow", "stop", "stopnow", "reload", "info", "portal", "setup", "setupzone", "createevent", "doctor", "validate", "template", "zonetemplate", "quickstart"), args[0]);
+        if (args.length == 1) return filter(Arrays.asList("start", "startnow", "stop", "stopnow", "reload", "info", "portal", "setup", "setupzone", "createevent", "doctor", "validate", "val", "check", "template", "zonetemplate", "quickstart"), args[0]);
         if (args.length == 2) {
             if ("portal".equals(args[0])) return filter(Arrays.asList("entry", "exit", "dynamic", "addpos", "dest", "return", "next", "nextdest"), args[1]);
             if ("template".equals(args[0])) return filter(Arrays.asList("waves", "boss", "resource", "pvp", "timed", "islandwar"), args[1]);
             if ("zonetemplate".equals(args[0])) return filter(Arrays.asList("waves", "boss", "resource", "pvp", "timed"), args[1]);
-            if ("validate".equals(args[0])) {
+            if ("validate".equals(args[0]) || "valid".equals(args[0]) || "val".equals(args[0]) || "check".equals(args[0])) {
                 List<String> options = eventIds();
                 options.add("all");
                 return filter(options, args[1]);

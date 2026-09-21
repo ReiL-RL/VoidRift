@@ -96,6 +96,21 @@ plugins/VoidRift/lang.yml
 /riftadmin quickstart
 ```
 
+Если `/riftadmin validate` не находится, почти всегда на сервере стоит старый JAR. Пересобери проект, замени JAR в `plugins/` и полностью перезапусти сервер:
+
+```bash
+mvn -DskipTests clean package
+```
+
+Поддерживаются варианты:
+
+```text
+/riftadmin validate void_waves
+/riftadmin validate all
+/riftadmin val void_waves
+/riftadmin check void_waves
+```
+
 ---
 
 ## Минимальный тестовый сценарий игроком
@@ -140,6 +155,8 @@ plugins/VoidRift/lang.yml
 | `/riftadmin doctor` | Полная проверка зависимостей, конфигов, ключей языка, событий и зон. |
 | `/riftadmin quickstart` | Показывает быстрый тестовый маршрут. |
 | `/riftadmin validate <event|all>` | Проверяет событие или все события перед запуском. |
+| `/riftadmin val <event|all>` | Короткий алиас validate. |
+| `/riftadmin check <event|all>` | Алиас validate/check. |
 | `/riftadmin info [event]` | Показывает список событий/порталов или информацию по событию. |
 | `/riftadmin info zone <zone>` | Показывает подробную информацию по зоне. |
 | `/riftadmin template <type> <event> [zone]` | Создаёт готовый шаблон события. |
@@ -243,6 +260,240 @@ waves, boss, resource, pvp, timed
 - не настроена точка возврата у выхода;
 - указан EliteMobs/MythicMobs моб, которого нет;
 - нет экономики, но в наградах указаны деньги.
+
+---
+
+## Важная логика: арена и зоны
+
+В VoidRift зона — это не “вся арена целиком навсегда”, а прямоугольная часть арены. Одна арена может состоять из нескольких зон/областей.
+
+Правильная модель такая:
+
+```text
+Арена события
+├─ зона/область 1: основной зал
+├─ зона/область 2: боковая комната
+├─ зона/область 3: мост/коридор
+├─ точки спавна мобов
+└─ mob-pool: какие мобы могут появляться
+```
+
+В `zones.yml` один `zone-id` описывает арену события, но внутри него могут быть несколько прямоугольных `areas`. Это нужно, чтобы арена не была только одной простой коробкой.
+
+Пример:
+
+```yaml
+zones:
+  void_arena:
+    world: world
+    areas:
+      - pos1: { x: 0, y: 60, z: 0 }
+        pos2: { x: 40, y: 90, z: 40 }
+      - pos1: { x: 45, y: 60, z: 10 }
+        pos2: { x: 70, y: 90, z: 30 }
+    spawn-points:
+      sp1: { x: 10, y: 64, z: 10 }
+      sp2: { x: 35, y: 64, z: 35 }
+      sp3: { x: 55, y: 64, z: 20 }
+    max-mobs: 20
+```
+
+То есть в будущем лучше думать так:
+
+- событие использует одну арену/zone-id;
+- внутри zone-id может быть несколько прямоугольных областей;
+- спавны мобов относятся к этой арене;
+- portal входа/выхода относится к событию.
+
+---
+
+## Как работают мобы в зоне
+
+Мобы появляются не “где попало”, а в точках `spawn-points`.
+
+`mob-pools` говорит, какие мобы могут появляться:
+
+```yaml
+mob-pools:
+  - mob-type: VANILLA
+    mob-id: ZOMBIE
+    model: void_zombie
+    weight: 5
+    wave: 0
+
+  - mob-type: ELITEMOBS
+    mob-id: void_reaver.yml
+    weight: 1
+    wave: 5
+```
+
+Поля:
+
+| Поле | Что значит |
+|---|---|
+| `mob-type` | Тип источника моба: `VANILLA`, `ELITEMOBS`, `MYTHICMOBS`. |
+| `mob-id` | Для vanilla — `ZOMBIE`, `SKELETON`; для EliteMobs — имя файла босса `.yml`. |
+| `model` | Модель FreeMinecraftModels для vanilla-моба. Можно `-` или пусто. |
+| `weight` | Вес спавна. Чем больше, тем чаще выбирается моб. |
+| `wave` | Волна появления. `0` значит с самого начала/любая волна. |
+
+### Как примерно выбирается моб
+
+Если в пуле есть:
+
+```yaml
+- ZOMBIE weight: 5
+- SKELETON weight: 3
+- void_reaver.yml weight: 1
+```
+
+То чаще всего будет Zombie, реже Skeleton, ещё реже EliteMobs босс.
+
+### Bonus waves
+
+Можно добавить особых мобов на конкретную волну:
+
+```yaml
+bonus-waves:
+  5:
+    - mob-type: ELITEMOBS
+      mob-id: void_reaver.yml
+      weight: 1
+      wave: 5
+```
+
+---
+
+## Как работать с EliteMobs
+
+EliteMobs обязателен для текущей версии VoidRift.
+
+1. Установи EliteMobs.
+2. Положи босса в папку EliteMobs, обычно:
+
+```text
+plugins/EliteMobs/custombosses/
+```
+
+3. В `zones.yml` укажи:
+
+```yaml
+mob-pools:
+  - mob-type: ELITEMOBS
+    mob-id: void_reaver.yml
+    weight: 1
+    wave: 5
+```
+
+Если `validate` ругается на EliteMobs-моба, проверь:
+
+- файл реально существует;
+- имя файла совпадает;
+- EliteMobs загрузился без ошибок;
+- моб указан именно как `mob-type: ELITEMOBS`.
+
+---
+
+## Как работать с FreeMinecraftModels / FMM
+
+FreeMinecraftModels обязателен для текущей версии VoidRift.
+
+FMM нужен для моделей на vanilla-мобах. Например, ты хочешь обычного Zombie, но с моделью `void_zombie`.
+
+```yaml
+mob-pools:
+  - mob-type: VANILLA
+    mob-id: ZOMBIE
+    model: void_zombie
+    weight: 5
+    wave: 0
+```
+
+Важно:
+
+- `mob-id` остаётся vanilla-типом: `ZOMBIE`, `SKELETON`, `CREEPER`.
+- `model` — ID модели FMM.
+- Если модель не нужна, оставь `model` пустым или `-`.
+
+---
+
+## Индивидуальные настройки запуска события
+
+У каждого события можно включить/выключить автозапуск, предупреждения и отсчёт.
+
+Пример:
+
+```yaml
+events:
+  void_waves:
+    enabled: true
+    interval-seconds: 1800
+
+    announcements:
+      enabled: true
+      warning-seconds: [300, 60, 10]
+
+    preview:
+      enabled: true
+      seconds: 10
+```
+
+Что это значит:
+
+| Поле | Что делает |
+|---|---|
+| `enabled` | Полностью включает/выключает событие. Если `false`, событие не стартует. |
+| `interval-seconds` | Через сколько секунд событие может стартовать автоматически. |
+| `announcements.enabled` | Включает/выключает предупреждения до старта. |
+| `announcements.warning-seconds` | За сколько секунд предупреждать: `300` = 5 минут, `60` = 1 минута, `10` = 10 секунд. |
+| `preview.enabled` | Включает короткий отсчёт перед стартом. |
+| `preview.seconds` | Длина отсчёта перед стартом. |
+
+Если хочешь предупреждение только за 5 минут:
+
+```yaml
+announcements:
+  enabled: true
+  warning-seconds: [300]
+```
+
+Если вообще не хочешь предупреждений:
+
+```yaml
+announcements:
+  enabled: false
+```
+
+---
+
+## Название события над порталом
+
+Когда событие активно, над входным порталом появляется название события.
+
+Настройка в `config.yml`:
+
+```yaml
+portal:
+  labels:
+    enabled: true
+    format: "&d✦ {event}"
+    offset-y: 2.4
+```
+
+Плейсхолдеры:
+
+| Плейсхолдер | Значение |
+|---|---|
+| `{event}` | Красивое имя события. |
+| `{id}` | ID события. |
+
+Если подпись мешает:
+
+```yaml
+portal:
+  labels:
+    enabled: false
+```
 
 ### Если игрок не может выйти
 
@@ -533,4 +784,3 @@ model: my_model
 - PvP arena;
 - timed challenge;
 - Island War.
-

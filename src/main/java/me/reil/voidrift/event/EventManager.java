@@ -28,9 +28,11 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -48,6 +50,7 @@ public final class EventManager {
     private final Map<String, ActiveEvent> activeEvents = new LinkedHashMap<String, ActiveEvent>();
     private final Map<String, Long> nextStartTimes = new LinkedHashMap<String, Long>();
     private final Map<String, LootTable> lootTables = new LinkedHashMap<String, LootTable>();
+    private final Map<String, Set<Integer>> announcedWarnings = new LinkedHashMap<String, Set<Integer>>();
     // Track last scheduled start date to avoid double-starting
     private final Map<String, String> lastScheduledStart = new LinkedHashMap<String, String>();
 
@@ -103,6 +106,7 @@ public final class EventManager {
         // Auto-start events with 10 second preview
         if (config.isAutoStartEnabled()) {
             for (EventDefinition def : definitions.values()) {
+                if (!def.isEnabled()) continue;
                 // Skip scheduled events (they use their own scheduling)
                 if (!"INTERVAL".equalsIgnoreCase(def.getSchedule())) continue;
                 if (activeEvents.containsKey(def.getId())) continue;
@@ -111,16 +115,10 @@ public final class EventManager {
                     nextStartTimes.put(def.getId(), now + (def.getIntervalSeconds() * 1000L));
                     continue;
                 }
-                // Preview 10 seconds before start
                 long timeUntilStart = nextStart - now;
-                if (timeUntilStart <= 10000L && timeUntilStart > 9000L && activeEvents.size() < config.getMaxActiveEvents()) {
-                    // Announce preview
-                    Map<String, String> soonVars = new HashMap<String, String>();
-                    soonVars.put("event", def.getDisplayName());
-                    soonVars.put("id", def.getId());
-                    Bukkit.broadcastMessage(plugin.getLang().msg("messages.event.starting-soon", soonVars));
-                }
+                announceStartWarnings(def, timeUntilStart);
                 if (now >= nextStart && activeEvents.size() < config.getMaxActiveEvents()) {
+                    announcedWarnings.remove(def.getId());
                     previewAndStart(def.getId());
                 }
             }
@@ -196,6 +194,10 @@ public final class EventManager {
     public boolean startEvent(String eventId) {
         EventDefinition def = definitions.get(eventId);
         if (def == null || activeEvents.containsKey(eventId)) return false;
+        if (!def.isEnabled()) {
+            plugin.getLogger().warning("Cannot start event '" + eventId + "': event is disabled");
+            return false;
+        }
 
         List<String> issues = validateEvent(def);
         if (!issues.isEmpty()) {
@@ -261,6 +263,7 @@ public final class EventManager {
     public boolean previewAndStart(final String eventId) {
         final EventDefinition def = definitions.get(eventId);
         if (def == null || activeEvents.containsKey(eventId)) return false;
+        if (!def.isEnabled()) return false;
 
         // Get preview settings from first ENTRY portal
         int previewSeconds = 10;
@@ -280,6 +283,11 @@ public final class EventManager {
                 previewPitch = portal.getPreviewSoundPitch();
                 break;
             }
+        }
+        if (!def.isPreviewEnabled()) {
+            previewSeconds = 0;
+        } else if (def.getPreviewSeconds() >= 0) {
+            previewSeconds = def.getPreviewSeconds();
         }
 
         if (previewSeconds <= 0) {
@@ -553,6 +561,11 @@ public final class EventManager {
             EventDefinition def = new EventDefinition(id, displayName, description, type, zoneId,
                     duration, interval, minPlayers, maxPlayers, rewardCmds, rewardMoney, rewardXp,
                     objectives, completeOnAll, flexAchievement, scaleMobsPerPlayer);
+            def.setEnabled(es.getBoolean("enabled", true));
+            def.setPreviewEnabled(es.getBoolean("preview.enabled", true));
+            def.setPreviewSeconds(es.getInt("preview.seconds", -1));
+            def.setAnnouncementsEnabled(es.getBoolean("announcements.enabled", true));
+            def.setWarningSeconds(readWarningSeconds(es));
 
             // Schedule
             String schedule = es.getString("schedule", "INTERVAL");
@@ -648,6 +661,7 @@ public final class EventManager {
 
         for (EventDefinition def : definitions.values()) {
             String schedule = def.getSchedule();
+            if (!def.isEnabled()) continue;
             if ("INTERVAL".equalsIgnoreCase(schedule)) continue;
             if (activeEvents.containsKey(def.getId())) continue;
             if (activeEvents.size() >= config.getMaxActiveEvents()) continue;
@@ -696,6 +710,73 @@ public final class EventManager {
             case "SATURDAY": return Calendar.SATURDAY;
             default: return -1;
         }
+    }
+
+    private void announceStartWarnings(EventDefinition def, long timeUntilStartMs) {
+        if (!def.isAnnouncementsEnabled()) return;
+        if (timeUntilStartMs <= 0L) return;
+        if (activeEvents.size() >= config.getMaxActiveEvents()) return;
+
+        Set<Integer> sent = announcedWarnings.get(def.getId());
+        if (sent == null) {
+            sent = new HashSet<Integer>();
+            announcedWarnings.put(def.getId(), sent);
+        }
+
+        for (Integer warning : def.getWarningSeconds()) {
+            if (warning == null || warning.intValue() <= 0) continue;
+            int seconds = warning.intValue();
+            long targetMs = seconds * 1000L;
+            if (timeUntilStartMs <= targetMs && !sent.contains(Integer.valueOf(seconds))) {
+                sent.add(Integer.valueOf(seconds));
+                Map<String, String> vars = new HashMap<String, String>();
+                vars.put("event", def.getDisplayName());
+                vars.put("id", def.getId());
+                vars.put("seconds", String.valueOf(seconds));
+                vars.put("time", formatSeconds(seconds));
+                Bukkit.broadcastMessage(plugin.getLang().msg("messages.event.starting-soon", vars));
+            }
+        }
+    }
+
+    private List<Integer> readWarningSeconds(ConfigurationSection es) {
+        List<Integer> warnings = new ArrayList<Integer>();
+        if (es.isList("announcements.warning-seconds")) {
+            for (Object raw : es.getList("announcements.warning-seconds")) {
+                Integer value = parsePositiveInt(raw);
+                if (value != null) warnings.add(value);
+            }
+        } else if (es.isInt("announcements.warning-seconds")) {
+            int value = es.getInt("announcements.warning-seconds");
+            if (value > 0) warnings.add(Integer.valueOf(value));
+        }
+        if (warnings.isEmpty()) {
+            warnings.add(Integer.valueOf(300));
+            warnings.add(Integer.valueOf(60));
+            warnings.add(Integer.valueOf(10));
+        }
+        Collections.sort(warnings, Collections.reverseOrder());
+        return warnings;
+    }
+
+    private Integer parsePositiveInt(Object raw) {
+        if (raw == null) return null;
+        try {
+            int value = Integer.parseInt(String.valueOf(raw));
+            return value > 0 ? Integer.valueOf(value) : null;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private String formatSeconds(int seconds) {
+        if (seconds >= 60 && seconds % 60 == 0) {
+            return (seconds / 60) + " мин.";
+        }
+        if (seconds >= 60) {
+            return (seconds / 60) + "м " + (seconds % 60) + "с";
+        }
+        return seconds + "с";
     }
 
     public List<String> validateEvent(EventDefinition def) {
